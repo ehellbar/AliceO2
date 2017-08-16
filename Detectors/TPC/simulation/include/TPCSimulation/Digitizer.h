@@ -17,11 +17,14 @@ using std::vector;
 
 class TTree;
 class TClonesArray;
+class TH3;
 
 namespace o2 {
 namespace TPC {
 
+class AliTPCSpaceCharge3DDriftLine;
 class DigitContainer;
+class SCContainer;
 
 /// Debug output
 typedef struct {
@@ -45,75 +48,82 @@ static GEMRESPONSE GEMresponse;
 /// and sorted as Digits into a TClonesArray which is then passed further on
 
 class Digitizer {
-  public:
+public:
+  
+  /// Default constructor
+  Digitizer();
 
-    /// Default constructor
-    Digitizer();
+  /// Destructor
+  ~Digitizer();
 
-    /// Destructor
-    ~Digitizer();
+  /// Initializer
+  void init();
+  void initSpaceCharge();
 
-    /// Initializer
-    void init();
+  /// Steer conversion of points to digits
+  /// \param points Container with TPC points
+  /// \return digits container
+  DigitContainer *Process(TClonesArray *points);
 
-    /// Steer conversion of points to digits
-    /// \param points Container with TPC points
-    /// \return digits container
-    DigitContainer *Process(TClonesArray *points);
+  DigitContainer *getDigitContainer() const { return mDigitContainer; }
 
-    DigitContainer *getDigitContainer() const { return mDigitContainer; }
+  /// Enable the debug output after application of the PRF
+  /// Can be set via DigitizerTask::setDebugOutput("PRFdebug")
+  static void setPRFDebug() { mDebugFlagPRF = true; }
 
-    /// Enable the debug output after application of the PRF
-    /// Can be set via DigitizerTask::setDebugOutput("PRFdebug")
-    static void setPRFDebug() { mDebugFlagPRF = true; }
+  /// Switch for triggered / continuous readout
+  /// \param isContinuous - false for triggered readout, true for continuous readout
+  static void setContinuousReadout(bool isContinuous) { mIsContinuous = isContinuous ; }
 
-    /// Switch for triggered / continuous readout
-    /// \param isContinuous - false for triggered readout, true for continuous readout
-    static void setContinuousReadout(bool isContinuous) { mIsContinuous = isContinuous ; }
+  // Setters for initial space charge distribution
+  void setInitialSpaceCharge(TH3 *scDensity);
+  void setInitialSpaceCharge(AliTPCSpaceCharge3DDriftLine *spaceCharge3D);
 
-    /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    /// Conversion functions that at some point should go someplace else
+  /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  /// Conversion functions that at some point should go someplace else
 
-    /// Compute time bin from z position
-    /// \param zPos z position of the charge
-    /// \return Time bin of the charge
-    static int getTimeBin(float zPos);
+  /// Compute time bin from z position
+  /// \param zPos z position of the charge
+  /// \return Time bin of the charge
+  static int getTimeBin(float zPos);
 
-    /// Compute z position from time bin
-    /// \param Time bin of the charge
-    /// \param
-    /// \return zPos z position of the charge
-    static float getZfromTimeBin(float timeBin, Side s);
+  /// Compute z position from time bin
+  /// \param Time bin of the charge
+  /// \param
+  /// \return zPos z position of the charge
+  static float getZfromTimeBin(float timeBin, Side s);
 
-    /// Compute time bin from time
-    /// \param time time of the charge
-    /// \return Time bin of the charge
-    static int getTimeBinFromTime(float time);
+  /// Compute time bin from time
+  /// \param time time of the charge
+  /// \return Time bin of the charge
+  static int getTimeBinFromTime(float time);
 
-    /// Compute time from time bin
-    /// \param timeBin time bin of the charge
-    /// \return Time of the charge
-    static float getTimeFromBin(int timeBin);
+  /// Compute time from time bin
+  /// \param timeBin time bin of the charge
+  /// \return Time of the charge
+  static float getTimeFromBin(int timeBin);
 
-    /// Compute time from z position
-    /// \param zPos z position of the charge
-    /// \return Time of the charge
-    static float getTime(float zPos);
+  /// Compute time from z position
+  /// \param zPos z position of the charge
+  /// \return Time of the charge
+  static float getTime(float zPos);
 
-    /// Compute the time of a given time bin
-    /// \param time Time of the charge
-    /// \return Time of the time bin of the charge
-    static float getTimeBinTime(float time);
+  /// Compute the time of a given time bin
+  /// \param time Time of the charge
+  /// \return Time of the time bin of the charge
+  static float getTimeBinTime(float time);
 
-  private:
-    Digitizer(const Digitizer &);
-    Digitizer &operator=(const Digitizer &);
+private:
+  Digitizer(const Digitizer &);
+  Digitizer &operator=(const Digitizer &);
 
-    DigitContainer          *mDigitContainer;   ///< Container for the Digits
+  DigitContainer          *mDigitContainer;   ///< Container for the Digits
 
-    std::unique_ptr<TTree>  mDebugTreePRF;      ///< Output tree for the output after the PRF
-    static bool             mDebugFlagPRF;      ///< Flag for debug output after the PRF
-    static bool             mIsContinuous;      ///< Switch for continuous readout
+  SCContainer *mSCContainer;	///< Container for space-charge distortions functionality 
+
+  std::unique_ptr<TTree>   mDebugTreePRF;      ///< Output tree for the output after the PRF
+  static bool              mDebugFlagPRF;      ///< Flag for debug output after the PRF
+  static bool              mIsContinuous;      ///< Switch for continuous readout
 
   ClassDefNV(Digitizer, 1);
 };

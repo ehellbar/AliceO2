@@ -4,7 +4,12 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::TPC::Baseline+;
+#pragma link C++ class o2::TPC::AliTPC3DCylindricalInterpolator+;
+#pragma link C++ class o2::TPC::AliTPC3DCylindricalInterpolatorFull+;
+#pragma link C++ class o2::TPC::AliTPCLookUpTable3DInterpolatorD+;
+#pragma link C++ class o2::TPC::AliTPCLookUpTable3DInterpolatorDFull+;
+#pragma link C++ class o2::TPC::AliTPCPoissonSolver+;
+#pragma link C++ class o2::TPC::AliTPCSpaceCharge3DDriftLine+;
 #pragma link C++ class o2::TPC::BoxCluster+;
 #pragma link C++ class o2::TPC::BoxClusterer+;
 #pragma link C++ class o2::TPC::CommonMode+;
@@ -33,6 +38,7 @@
 #pragma link C++ class o2::TPC::PadResponse+;
 #pragma link C++ class o2::TPC::Point+;
 #pragma link C++ class o2::TPC::SAMPAProcessing+;
+#pragma link C++ class o2::TPC::SCContainer+;
 
 #pragma link C++ class std::vector<o2::TPC::Cluster>+;
 

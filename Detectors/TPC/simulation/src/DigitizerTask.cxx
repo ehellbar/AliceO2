@@ -74,6 +74,7 @@ InitStatus DigitizerTask::Init()
   
   mDigitizer->init();
   mDigitContainer = mDigitizer->getDigitContainer();
+  if (o2::TPC::SCContainer::getSCDistortionsModel()!=o2::TPC::SCContainer::SCDistModel::SCDistOff) mDigitizer->initSpaceCharge();
   return kSUCCESS;
 }
 

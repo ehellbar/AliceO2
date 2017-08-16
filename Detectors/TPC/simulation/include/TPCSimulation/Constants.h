@@ -24,6 +24,7 @@ constexpr float DIFFT = 0.0209;           ///< Transverse diffusion of Ne-CO2-N2
 constexpr float DIFFL = 0.0221;           ///< Longitudinal diffusion of Ne-CO2-N2 (90-10-5), value from TDR
 constexpr float NPRIM = 14.;              ///< Number of priimary electrons per MIP and cm in Ne-CO2-N2 (90-10-5), value from current AliRoot TPCParam
 const std::vector<float> BBPARAM{0.76176e-1, 10.632, 0.13279e-4, 1.8631, 1.9479};   ///< Bethe-Bloch parameters of Ne-CO2-N2 (90-10-5), value from current AliRoot TPCParam
+const float OMEGATAU = 0.32;           ///< Omega*tau for Ne-CO2-N2 (90-10-5) at B = 0.5 T
 
 // ROC parameters
 constexpr float EFFGAINGEM1 = 9.1;        ///< Effective gain in GEM1, value from TDR addendum

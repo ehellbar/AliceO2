@@ -2,6 +2,7 @@
 /// \brief Implementation of the ALICE TPC digitizer
 /// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
+#include "TPCSimulation/AliTPCSpaceCharge3DDriftLine.h"
 #include "TPCSimulation/Digitizer.h"
 #include "TPCSimulation/Constants.h"
 #include "TPCSimulation/ElectronTransport.h"
@@ -9,6 +10,7 @@
 #include "TPCSimulation/PadResponse.h"
 #include "TPCSimulation/Point.h"
 #include "TPCSimulation/SAMPAProcessing.h"
+#include "TPCSimulation/SCContainer.h"
 
 #include "TPCBase/Mapper.h"
 
@@ -24,11 +26,13 @@ bool o2::TPC::Digitizer::mIsContinuous = true;
 Digitizer::Digitizer()
   : mDigitContainer(nullptr)
   , mDebugTreePRF(nullptr)
+  , mSCContainer(nullptr)
 {}
 
 Digitizer::~Digitizer()
 {
   delete mDigitContainer;
+  delete mSCContainer;
 }
 
 void Digitizer::init()
@@ -39,6 +43,13 @@ void Digitizer::init()
 
 //  mDebugTreePRF = std::unique_ptr<TTree> (new TTree("PRFdebug", "PRFdebug"));
 //  mDebugTreePRF->Branch("GEMresponse", &GEMresponse, "CRU:timeBin:row:pad:nElectrons");
+}
+
+void Digitizer::initSpaceCharge()
+{
+  /// Initialize SCContainer
+  if (!mSCContainer) mSCContainer = new SCContainer();
+  mSCContainer->calculateLookupTables();
 }
 
 DigitContainer *Digitizer::Process(TClonesArray *points)
@@ -62,7 +73,9 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
   for(auto pointObject : *points) {
     Point *inputpoint = static_cast<Point *>(pointObject);
 
-    const GlobalPosition3D posEle(inputpoint->GetX(), inputpoint->GetY(), inputpoint->GetZ());
+    GlobalPosition3D posEle(inputpoint->GetX(), inputpoint->GetY(), inputpoint->GetZ());
+    /// Space-charge distortions
+    if (mSCContainer) mSCContainer->distortPoint(posEle);
 
     // The energy loss stored is really nElectrons
     const int nPrimaryElectrons = static_cast<int>(inputpoint->GetEnergyLoss());
@@ -140,4 +153,20 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
   /// end of loop over points
 
   return mDigitContainer;
+}
+
+void Digitizer::setInitialSpaceCharge(TH3 *scDensity)
+{
+  /// Set initial space-charge density
+  /// \param scDensity TH3, format (phi,r,z)
+  if (!mSCContainer) mSCContainer = new SCContainer();
+  mSCContainer->setInitialSCDensity(scDensity);
+}
+
+void Digitizer::setInitialSpaceCharge(AliTPCSpaceCharge3DDriftLine *spaceCharge3D)
+{
+  /// Initiate space-charge container and set precalculated lookup tables as initial space charge
+  /// \param spaceCharge3D AliTPCSpaceCharge3DDriftLine object with precalculated lookup tables
+  if (!mSCContainer) mSCContainer = new SCContainer();
+  mSCContainer->setSpaceCharge3D(spaceCharge3D);
 }

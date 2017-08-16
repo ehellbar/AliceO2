@@ -5,6 +5,12 @@ O2_SETUP(NAME ${MODULE_NAME})
 link_directories( ${LINK_DIRECTORIES})
 
 set(SRCS
+   src/AliTPC3DCylindricalInterpolator.cxx
+   src/AliTPC3DCylindricalInterpolatorFull.cxx
+   src/AliTPCLookUpTable3DInterpolatorD.cxx
+   src/AliTPCLookUpTable3DInterpolatorDFull.cxx
+   src/AliTPCPoissonSolver.cxx
+   src/AliTPCSpaceCharge3DDriftLine.cxx
    src/Baseline.cxx
    src/BoxCluster.cxx
    src/BoxClusterer.cxx
@@ -31,9 +37,16 @@ set(SRCS
    src/PadResponse.cxx
    src/Point.cxx
    src/SAMPAProcessing.cxx
+   src/SCContainer.cxx
 )
 
 set(HEADERS
+   include/${MODULE_NAME}/AliTPC3DCylindricalInterpolator.h
+   include/${MODULE_NAME}/AliTPC3DCylindricalInterpolatorFull.h
+   include/${MODULE_NAME}/AliTPCLookUpTable3DInterpolatorD.h
+   include/${MODULE_NAME}/AliTPCLookUpTable3DInterpolatorDFull.h
+   include/${MODULE_NAME}/AliTPCPoissonSolver.h
+   include/${MODULE_NAME}/AliTPCSpaceCharge3DDriftLine.h
    include/${MODULE_NAME}/Baseline.h
    include/${MODULE_NAME}/BoxCluster.h
    include/${MODULE_NAME}/BoxClusterer.h
@@ -60,6 +73,7 @@ set(HEADERS
    include/${MODULE_NAME}/PadResponse.h
    include/${MODULE_NAME}/Point.h
    include/${MODULE_NAME}/SAMPAProcessing.h
+   include/${MODULE_NAME}/SCContainer.h
 )
 Set(LINKDEF src/TPCSimulationLinkDef.h)
 Set(LIBRARY_NAME ${MODULE_NAME})

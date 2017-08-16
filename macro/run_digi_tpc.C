@@ -5,6 +5,7 @@
   #include "TString.h"
   #include "TStopwatch.h"
   #include "TGeoManager.h"
+  #include "TH3.h"
 
   #include "FairLogger.h"
   #include "FairRunAna.h"
@@ -64,6 +65,13 @@ void run_digi_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t isCont
         o2::TPC::DigitizerTask *digiTPC = new o2::TPC::DigitizerTask;
         digiTPC->setContinuousReadout(isContinuous);
 
+	// Space charge
+	digiTPC->setSCDistortionsModel(o2::TPC::SCContainer::SCDistModel(1));
+	TFile *fileSC = TFile::Open("InitialSpaceCharge.root");
+	TH3 *sc = (TH3*)(fileSC->Get("inputSCDensity3D81"));
+	// o2::TPC::AliTPCSpaceCharge3DDriftLine *sc = (o2::TPC::AliTPCSpaceCharge3DDriftLine*)fileSC->Get("spaceCharge3D");
+	digiTPC->setInitialSpaceCharge(sc);
+	 
         run->AddTask(digiTPC);
 
         run->Init();
