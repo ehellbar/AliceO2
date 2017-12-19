@@ -58,7 +58,7 @@ public:
 
   // Setters for initial space charge distribution
   void setInitialSpaceCharge(TH3 *scDensity);
-  void setInitialSpaceCharge(AliTPCSpaceCharge3DDriftLine *spaceCharge3D);
+  void setInitialSpaceCharge(AliTPCSpaceCharge3DDriftLine &spaceCharge3D);
       
   /// Digitization
   /// \param option Option
@@ -107,19 +107,19 @@ void DigitizerTask::setSCDistortionsModel(o2::TPC::SCContainer::SCDistModel scMo
   o2::TPC::SCContainer::setSCDistortionsModel(scModel);
 }
 
+/// Set initial space-charge density
+/// \param scDensity TH3, format (phi,r,z)
 inline
 void DigitizerTask::setInitialSpaceCharge(TH3 *scDensity)
 {
-  /// Set initial space-charge density
-  /// \param scDensity TH3, format (phi,r,z)
   mDigitizer->setInitialSpaceCharge(scDensity);
 }
 
+/// Set precalculated lookup tables as initial space charge
+/// \param spaceCharge3D AliTPCSpaceCharge3DDriftLine object with precalculated lookup tables
 inline
-void DigitizerTask::setInitialSpaceCharge(AliTPCSpaceCharge3DDriftLine *spaceCharge3D)
+void DigitizerTask::setInitialSpaceCharge(AliTPCSpaceCharge3DDriftLine &spaceCharge3D)
 {
-  /// Set precalculated lookup tables as initial space charge
-  /// \param spaceCharge3D AliTPCSpaceCharge3DDriftLine object with precalculated lookup tables
   mDigitizer->setInitialSpaceCharge(spaceCharge3D);
 }
   

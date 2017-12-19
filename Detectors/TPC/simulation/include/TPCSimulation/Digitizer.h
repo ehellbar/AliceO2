@@ -8,6 +8,7 @@
 #include "TPCSimulation/DigitContainer.h"
 #include "TPCSimulation/PadResponse.h"
 #include "TPCSimulation/Constants.h"
+#include "TPCSimulation/SCContainer.h"
 
 #include "TPCBase/Mapper.h"
 
@@ -24,7 +25,6 @@ namespace TPC {
 
 class AliTPCSpaceCharge3DDriftLine;
 class DigitContainer;
-class SCContainer;
 
 /// Debug output
 typedef struct {
@@ -77,7 +77,7 @@ public:
 
   // Setters for initial space charge distribution
   void setInitialSpaceCharge(TH3 *scDensity);
-  void setInitialSpaceCharge(AliTPCSpaceCharge3DDriftLine *spaceCharge3D);
+  void setInitialSpaceCharge(AliTPCSpaceCharge3DDriftLine &spaceCharge3D);
 
   /// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   /// Conversion functions that at some point should go someplace else
@@ -119,7 +119,7 @@ private:
 
   DigitContainer          *mDigitContainer;   ///< Container for the Digits
 
-  SCContainer *mSCContainer;	///< Container for space-charge distortions functionality 
+  SCContainer mSCContainer;	///< Container for space-charge distortions functionality 
 
   std::unique_ptr<TTree>   mDebugTreePRF;      ///< Output tree for the output after the PRF
   static bool              mDebugFlagPRF;      ///< Flag for debug output after the PRF

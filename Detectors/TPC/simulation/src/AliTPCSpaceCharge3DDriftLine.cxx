@@ -63,7 +63,7 @@ using namespace o2::TPC;
 ///  
 AliTPCSpaceCharge3DDriftLine::AliTPCSpaceCharge3DDriftLine()
   // : AliTPCCorrection(),fC0(0.),fC1(0.),fCorrectionFactor(1.),  fInitLookUp(kFALSE) // removed
-  : fT1(1.),fT2(1.),fC0(0.),fC1(0.),fCorrectionFactor(1.),  fInitLookUp(kFALSE) // added
+  : TNamed("SpaceCharge3D","SpaceCharge3D"),fT1(1.),fT2(1.),fC0(0.),fC1(0.),fCorrectionFactor(1.),  fInitLookUp(kFALSE) // added
 {
 	
   fInterpolationOrder = 1; //triliniear 3d //2 there is an error
@@ -334,7 +334,7 @@ AliTPCSpaceCharge3DDriftLine::AliTPCSpaceCharge3DDriftLine
  Int_t rbfKernelType
 	)
   // : AliTPCCorrection(),fC0(0.),fC1(0.),fCorrectionFactor(1.), fInitLookUp(kFALSE) // removed
-  : fT1(1.),fT2(1.),fC0(0.),fC1(0.),fCorrectionFactor(1.),  fInitLookUp(kFALSE) // added
+  : TNamed("SpaceCharge3D","SpaceCharge3D"),fT1(1.),fT2(1.),fC0(0.),fC1(0.),fCorrectionFactor(1.),  fInitLookUp(kFALSE) // added
 {
 	
   fInterpolationOrder = interpolationorder; //triliniear 3d //2 there is an error		

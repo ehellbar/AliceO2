@@ -17,6 +17,7 @@
 /// \author Rifki Sadikin <rifki.sadikin@cern.ch>, Indonesian Institute of Sciences
 /// \date November 11, 2015///
 
+#include "TNamed.h"
 #include "TVectorD.h"
 #include "TFormula.h"
 #include "TPCSimulation/AliTPCPoissonSolver.h"

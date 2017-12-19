@@ -26,13 +26,12 @@ bool o2::TPC::Digitizer::mIsContinuous = true;
 Digitizer::Digitizer()
   : mDigitContainer(nullptr)
   , mDebugTreePRF(nullptr)
-  , mSCContainer(nullptr)
+  , mSCContainer()
 {}
 
 Digitizer::~Digitizer()
 {
   delete mDigitContainer;
-  delete mSCContainer;
 }
 
 void Digitizer::init()
@@ -47,9 +46,7 @@ void Digitizer::init()
 
 void Digitizer::initSpaceCharge()
 {
-  /// Initialize SCContainer
-  if (!mSCContainer) mSCContainer = new SCContainer();
-  mSCContainer->calculateLookupTables();
+  mSCContainer.calculateLookupTables();
 }
 
 DigitContainer *Digitizer::Process(TClonesArray *points)
@@ -75,7 +72,7 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
 
     GlobalPosition3D posEle(inputpoint->GetX(), inputpoint->GetY(), inputpoint->GetZ());
     /// Space-charge distortions
-    if (mSCContainer) mSCContainer->distortPoint(posEle);
+    if (SCContainer::getSCDistortionsModel()!=o2::TPC::SCContainer::SCDistModel::SCDistOff) mSCContainer.distortPoint(posEle);
 
     // The energy loss stored is really nElectrons
     const int nPrimaryElectrons = static_cast<int>(inputpoint->GetEnergyLoss());
@@ -155,18 +152,16 @@ DigitContainer *Digitizer::Process(TClonesArray *points)
   return mDigitContainer;
 }
 
-void Digitizer::setInitialSpaceCharge(TH3 *scDensity)
-{
   /// Set initial space-charge density
   /// \param scDensity TH3, format (phi,r,z)
-  if (!mSCContainer) mSCContainer = new SCContainer();
-  mSCContainer->setInitialSCDensity(scDensity);
+void Digitizer::setInitialSpaceCharge(TH3 *scDensity)
+{
+  mSCContainer.setInitialSCDensity(scDensity);
 }
 
-void Digitizer::setInitialSpaceCharge(AliTPCSpaceCharge3DDriftLine *spaceCharge3D)
-{
   /// Initiate space-charge container and set precalculated lookup tables as initial space charge
   /// \param spaceCharge3D AliTPCSpaceCharge3DDriftLine object with precalculated lookup tables
-  if (!mSCContainer) mSCContainer = new SCContainer();
-  mSCContainer->setSpaceCharge3D(spaceCharge3D);
+void Digitizer::setInitialSpaceCharge(AliTPCSpaceCharge3DDriftLine &spaceCharge3D)
+{
+  mSCContainer.setSpaceCharge3D(spaceCharge3D);
 }

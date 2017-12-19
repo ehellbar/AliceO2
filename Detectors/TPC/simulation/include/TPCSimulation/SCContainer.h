@@ -5,13 +5,14 @@
 #ifndef O2_TPC_SCContainer_H_
 #define O2_TPC_SCContainer_H_
 
+#include "TPCSimulation/AliTPCPoissonSolver.h"
+#include "TPCSimulation/AliTPCSpaceCharge3DDriftLine.h"
+
 class TH3;
 
 namespace o2 {
 namespace TPC {
 
-class AliTPCPoissonSolver;
-class AliTPCSpaceCharge3DDriftLine;
 class Defs;
   
 class SCContainer
@@ -30,11 +31,11 @@ public:
   SCContainer(Int_t nRRows, Int_t nZColumns, Int_t nPhiSlices, Int_t interpolationorder);
   
   // Destructor 
-  ~SCContainer();
+  ~SCContainer() = default;
 
   //
-  void setSpaceCharge3D(AliTPCSpaceCharge3DDriftLine *spaceCharge);
-  AliTPCSpaceCharge3DDriftLine *getSpaceCharge3D() {return mSpaceCharge;}
+  void setSpaceCharge3D(AliTPCSpaceCharge3DDriftLine &spaceCharge);
+  const AliTPCSpaceCharge3DDriftLine &getSpaceCharge3D() const {return mSpaceCharge;}
 
   // Calculation of distortion/correction lookup tables
   void calculateLookupTables();
@@ -61,8 +62,8 @@ private:
 
   TH3 *mInitialSCDensityHistogram;
 
-  AliTPCPoissonSolver *mPoissonSolver;
-  AliTPCSpaceCharge3DDriftLine *mSpaceCharge;
+  AliTPCPoissonSolver mPoissonSolver;
+  AliTPCSpaceCharge3DDriftLine mSpaceCharge;
 
 };
 
