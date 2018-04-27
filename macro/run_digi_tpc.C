@@ -5,6 +5,9 @@
 #include "TString.h"
 #include "TStopwatch.h"
 #include "TGeoManager.h"
+#include "TFile.h"
+#include "TH3.h"
+#include "TSystem.h"
 
 #include "FairLogger.h"
 #include "FairRunAna.h"
@@ -16,9 +19,10 @@
 #include "Field/MagneticField.h"
 
 #include "TPCSimulation/DigitizerTask.h"
+#include "TPCSimulation/SpaceChargeInterface.h"
 #endif
 
-void run_digi_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t isContinuous = 1)
+void run_digi_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t isContinuous = 1, Int_t scDistortionsMode=0)
 {
   // Initialize logger
   FairLogger* logger = FairLogger::GetLogger();
@@ -58,6 +62,21 @@ void run_digi_tpc(Int_t nEvents = 10, TString mcEngine = "TGeant3", Int_t isCont
   o2::TPC::DigitizerTask* digiTPC = new o2::TPC::DigitizerTask(0);
   digiTPC->setContinuousReadout(isContinuous);
   digiTPC->setDebugOutput("DigitMCDebug");
+
+  // Switch on distortions and get initial space-charge density histogram if provided in environment variables
+  if (scDistortionsMode>0) {
+    o2::TPC::SpaceChargeInterface::SCDistortionType distortionType = scDistortionsMode==1 ? o2::TPC::SpaceChargeInterface::SCDistortionType::SCDistortionsRealistic : o2::TPC::SpaceChargeInterface::SCDistortionType::SCDistortionsConstant;
+    TH3 *hisSCDensity = nullptr;
+    if (gSystem->Getenv("O2TPCSCDensityHisFilePath") && gSystem->Getenv("O2TPCSCDensityHisName")){
+      TFile *fileSCInput = TFile::Open(gSystem->Getenv("O2TPCSCDensityHisFilePath"));
+      hisSCDensity = (TH3*)fileSCInput->Get(gSystem->Getenv("O2TPCSCDensityHisName"));
+    }
+    if (distortionType==o2::TPC::SpaceChargeInterface::SCDistortionType::SCDistortionsConstant && !hisSCDensity){
+      std::cout << "Constant space-charge distortions require an initial space-charge density histogram. Please provide the path to the root file (O2TPCSCDensityHisFilePath) and the histogram name (O2TPCSCDensityHisName) in your environment variables." << std::endl;
+      return;
+    }
+    digiTPC->enableSCDistortions(distortionType, hisSCDensity);
+  }
 
   run->AddTask(digiTPC);
 

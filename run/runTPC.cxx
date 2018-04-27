@@ -35,6 +35,7 @@ int main(int argc, char *argv[])
     ("nEvents,n",   bpo::value<int>()->default_value(2),                "number of events to simulate.")
     ("mcEngine,e",  bpo::value<std::string>()->default_value("TGeant3"), "MC generator to be used.")
     ("continuous,c", bpo::value<int>()->default_value(1),                "Running in continuous mode 1 - Triggered mode 0")
+    ("scDistortions,d", bpo::value<int>()->default_value(0),                "No distortions 0 - realistic distortions 1 - constant distortions 2")
     ("threads,j",   bpo::value<unsigned>()->default_value(0),            "Parallel processing threads");
   bpo::store(parse_command_line(argc, argv, desc), vm);
   bpo::notify(vm);
@@ -50,6 +51,7 @@ int main(int argc, char *argv[])
   const std::string engine = vm["mcEngine"].as<std::string>();
   const std::string mode = vm["mode"].as<std::string>();
   const int isContinuous = vm["continuous"].as<int>();
+  const int scDistortionsMode = vm["scDistortions"].as<int>();
   const unsigned threads = vm["threads"].as<unsigned>();
 
   std::cout << "####" << std::endl;
@@ -62,7 +64,7 @@ int main(int argc, char *argv[])
   if (mode == "sim") {
     run_sim_tpc(events,engine);
   } else if (mode == "digi") {
-    run_digi_tpc(events,engine, isContinuous);
+    run_digi_tpc(events,engine, isContinuous, scDistortionsMode);
   } else if (mode == "clus") {
     run_clus_tpc(events,engine, isContinuous, threads);
   } else if (mode == "track") {
@@ -79,7 +81,7 @@ int main(int argc, char *argv[])
 
     PID = fork();
     if (PID == -1) { std::cout << "ERROR" << std::endl; return EXIT_FAILURE;}
-    if (PID == 0)  { run_digi_tpc(events,engine,isContinuous); return EXIT_SUCCESS;}
+    if (PID == 0)  { run_digi_tpc(events,engine,isContinuous,scDistortionsMode); return EXIT_SUCCESS;}
     else waitpid(PID,&status,0);
 
     PID = fork();
