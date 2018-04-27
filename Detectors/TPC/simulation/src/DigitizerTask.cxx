@@ -13,6 +13,7 @@
 /// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #include "TFile.h"
+#include "TH3.h"
 #include "TRandom.h"
 #include "TTree.h"
 
@@ -223,4 +224,12 @@ void DigitizerTask::initBunchTrainStructure(const size_t numberOfEvents)
     } else
       eventTime += bSpacing;
   }
+}
+
+void DigitizerTask::enableSCDistortions(SpaceChargeInterface::SCDistortionType distortionType, TH3 *hisInitialSCDensity, int nZSlices, int nPhiBins, int nRBins)
+{
+  if (distortionType==SpaceChargeInterface::SCDistortionType::SCDistortionsConstant) LOG(INFO) << "Using constant space-charge distortions." << FairLogger::endl;
+  if (distortionType==SpaceChargeInterface::SCDistortionType::SCDistortionsRealistic) LOG(INFO) << "Using realistic space-charge distortions." << FairLogger::endl;
+  if (hisInitialSCDensity) LOG(INFO) << "Providing initial space-charge density histogram: " << hisInitialSCDensity->GetName() << FairLogger::endl;
+  mDigitizer->enableSCDistortions(distortionType, hisInitialSCDensity, nZSlices, nPhiBins, nRBins);
 }

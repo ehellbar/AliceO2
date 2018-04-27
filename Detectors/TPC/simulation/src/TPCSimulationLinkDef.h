@@ -32,6 +32,8 @@
 #pragma link C++ class std::vector < o2::TPC::ElementalHit > +;
 #pragma link C++ class o2::TPC::HitGroup + ;
 #pragma link C++ class o2::TPC::SAMPAProcessing + ;
+#pragma link C++ class o2::TPC::SpaceChargeContainer+;
+#pragma link C++ class o2::TPC::SpaceChargeInterface+;
 
 #pragma link C++ class std::vector < o2::TPC::HitGroup > +;
 

@@ -824,6 +824,7 @@ o2_define_bucket(
     ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/TPC/include
     ${CMAKE_SOURCE_DIR}/Steer/include
     ${MS_GSL_INCLUDE_DIR}
+    ${O2_TPCSPACECHARGE_LIB_DIR}/include
 )
 
 

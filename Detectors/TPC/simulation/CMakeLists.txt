@@ -18,6 +18,8 @@ set(SRCS
    src/PadResponse.cxx
    src/Point.cxx
    src/SAMPAProcessing.cxx
+   src/SpaceChargeContainer.cxx
+   src/SpaceChargeInterface.cxx
 )
 
 set(HEADERS
@@ -34,10 +36,24 @@ set(HEADERS
    include/${MODULE_NAME}/PadResponse.h
    include/${MODULE_NAME}/Point.h
    include/${MODULE_NAME}/SAMPAProcessing.h
+   include/${MODULE_NAME}/SpaceChargeContainer.h
+   include/${MODULE_NAME}/SpaceChargeInterface.h
 )
 Set(LINKDEF src/TPCSimulationLinkDef.h)
 Set(LIBRARY_NAME ${MODULE_NAME})
 set(BUCKET_NAME tpc_simulation_bucket)
+
+if(DEFINED O2_TPCSPACECHARGE_LIB_DIR)
+  include_directories(${O2_TPCSPACECHARGE_LIB_DIR}/include)
+  find_library(TPCSPACECHARGE_LIB NAMES O2TPCSpaceCharge PATHS ${O2_TPCSPACECHARGE_LIB_DIR}/lib NO_DEFAULT_PATH)
+  if(NOT TPCSPACECHARGE_LIB)
+    message(FATAL_ERROR "Cannot find library O2TPCSpaceCharge in ${O2_TPCSPACECHARGE_LIB_DIR}/lib")
+  endif()
+  link_libraries(${TPCSPACECHARGE_LIB})
+  message("Building TPC space-charge interface from standalone library in ${O2_TPCSPACECHARGE_LIB_DIR}")
+else()
+  message(FATAL_ERROR "cmake variable O2_TPCSPACECHARGE_LIB_DIR is not defined")
+endif()
 
 O2_GENERATE_LIBRARY()
 
