@@ -1784,8 +1784,6 @@ o2_define_bucket(
     simulation_setup_bucket
 
     DEPENDENCIES
-    pythia6 # this is needed by Geant3
-    EGPythia6 # this is needed by Geant4 (TPythia6Decayer)
     ${Geant3_LIBRARIES}
     ${Geant4_LIBRARIES}
     ${Geant4VMC_LIBRARIES}
@@ -1793,6 +1791,8 @@ o2_define_bucket(
     fairroot_geom
     SimulationDataFormat
     DetectorsPassive
+    pythia6 # this is needed by Geant3 and EGPythia6
+    EGPythia6 # this is needed by Geant4 (TPythia6Decayer)
 
     INCLUDE_DIRECTORIES
     ${Geant4VMC_INCLUDE_DIRS}
