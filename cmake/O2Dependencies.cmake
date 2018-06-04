@@ -1346,7 +1346,9 @@ o2_define_bucket(
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/common/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+
 )
 
 o2_define_bucket(
@@ -1366,12 +1368,41 @@ o2_define_bucket(
     DetectorsBase
     SimulationDataFormat
 
+
     INCLUDE_DIRECTORIES
     ${FAIRROOT_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/Detectors/Base/include
     ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
     ${CMAKE_SOURCE_DIR}/Detectors/PHOS/base/include
     ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+
+)
+
+o2_define_bucket(
+    NAME
+    phos_reconstruction_bucket
+
+    DEPENDENCIES
+    phos_base_bucket
+    phos_simulation_bucket
+    root_base_bucket
+    PHOSBase
+    fairroot_geom
+    RIO
+    Graf
+    Gpad
+    Matrix
+    Physics
+
+
+    INCLUDE_DIRECTORIES
+    ${FAIRROOT_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/Detectors/Base/include
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/include
+    ${CMAKE_SOURCE_DIR}/Detectors/PHOS/base/include
+    ${CMAKE_SOURCE_DIR}/Detectors/PHOS/reconstruction/include
+    ${CMAKE_SOURCE_DIR}/Common/MathUtils/include
+
 )
 
 o2_define_bucket(
@@ -1441,6 +1472,7 @@ o2_define_bucket(
     FITSimulation
     HMPIDSimulation
     PHOSSimulation
+    PHOSReconstruction
     Field
     Generators
     DataFormatsParameters
