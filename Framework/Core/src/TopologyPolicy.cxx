@@ -185,7 +185,7 @@ bool expendableDataDeps(DataProcessorSpec const& a, DataProcessorSpec const& b)
   if (isAExpendable) {
     bool hasDependency = dataDeps(b, a);
     O2_SIGNPOST_END(topology, sid, "expendableDataDeps", "%s is expendable. %s from %s to %s => %s.",
-                    a.name  .c_str(), hasDependency ? "There is however an inverse dependency" : "No inverse dependency", b.name.c_str(), a.name.c_str(),
+                    a.name.c_str(), hasDependency ? "There is however an inverse dependency" : "No inverse dependency", b.name.c_str(), a.name.c_str(),
                     !hasDependency ? "true" : "false");
     if (!hasDependency) {
       return true;
