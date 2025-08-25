@@ -44,12 +44,15 @@ std::string cutString(std::string&& str);
 std::string strToUpper(std::string&& str);
 } // namespace o2::framework
 
+struct TClass;
+
 namespace o2::soa
 {
 void accessingInvalidIndexFor(const char* getter);
 void dereferenceWithWrongType(const char* getter, const char* target);
 void missingFilterDeclaration(int hash, int ai);
 void notBoundTable(const char* tableName);
+void* extractCCDBPayload(char* payload, size_t size, TClass const* cl, const char* what);
 } // namespace o2::soa
 
 namespace o2::soa
@@ -561,21 +564,21 @@ class ColumnIterator : ChunkingPolicy
     mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
   }
 
-  decltype(auto) operator*() const
+  auto operator*() const
     requires std::same_as<bool, std::decay_t<T>>
   {
     checkSkipChunk();
     return (*(mCurrent - (mOffset >> SCALE_FACTOR) + ((*mCurrentPos + mOffset) >> SCALE_FACTOR)) & (1 << ((*mCurrentPos + mOffset) & 0x7))) != 0;
   }
 
-  decltype(auto) operator*() const
+  auto operator*() const
     requires((!std::same_as<bool, std::decay_t<T>>) && std::same_as<arrow_array_for_t<T>, arrow::ListArray>)
   {
     checkSkipChunk();
     auto list = std::static_pointer_cast<arrow::ListArray>(mColumn->chunk(mCurrentChunk));
     auto offset = list->value_offset(*mCurrentPos - mFirstIndex);
     auto length = list->value_length(*mCurrentPos - mFirstIndex);
-    return gsl::span{mCurrent + mFirstIndex + offset, mCurrent + mFirstIndex + (offset + length)};
+    return gsl::span<unwrap_t<T> const>{mCurrent + mFirstIndex + offset, mCurrent + mFirstIndex + (offset + length)};
   }
 
   decltype(auto) operator*() const
@@ -851,7 +854,7 @@ struct FilteredIndexPolicy : IndexPolicyBase {
   // which happens below which will properly setup the first index
   // by remapping the filtered index 0 to whatever unfiltered index
   // it belongs to.
-  FilteredIndexPolicy(gsl::span<int64_t const> selection, int64_t rows, uint64_t offset = 0)
+  FilteredIndexPolicy(std::span<int64_t const> selection, int64_t rows, uint64_t offset = 0)
     : IndexPolicyBase{-1, offset},
       mSelectedRows(selection),
       mMaxSelection(selection.size()),
@@ -860,7 +863,7 @@ struct FilteredIndexPolicy : IndexPolicyBase {
     this->setCursor(0);
   }
 
-  void resetSelection(gsl::span<int64_t const> selection)
+  void resetSelection(std::span<int64_t const> selection)
   {
     mSelectedRows = selection;
     mMaxSelection = selection.size();
@@ -944,7 +947,7 @@ struct FilteredIndexPolicy : IndexPolicyBase {
   {
     this->mRowIndex = O2_BUILTIN_LIKELY(mSelectionRow < mMaxSelection) ? mSelectedRows[mSelectionRow] : -1;
   }
-  gsl::span<int64_t const> mSelectedRows;
+  std::span<int64_t const> mSelectedRows;
   int64_t mSelectionRow = 0;
   int64_t mMaxSelection = 0;
   int64_t nRows = 0;
@@ -1275,6 +1278,11 @@ concept with_sources = requires {
 };
 
 template <typename T>
+concept with_ccdb_urls = requires {
+  T::ccdb_urls.size();
+};
+
+template <typename T>
 concept with_base_table = not_void<typename aod::MetadataTrait<o2::aod::Hash<T::ref.desc_hash>>::metadata::base_table_t>;
 
 template <size_t N1, std::array<TableRef, N1> os1, size_t N2, std::array<TableRef, N2> os2>
@@ -1428,7 +1436,7 @@ struct PreslicePolicyGeneral : public PreslicePolicyBase {
   void updateSliceInfo(SliceInfoUnsortedPtr&& si);
 
   SliceInfoUnsortedPtr sliceInfo;
-  gsl::span<const int64_t> getSliceFor(int value) const;
+  std::span<const int64_t> getSliceFor(int value) const;
 };
 
 template <typename T, typename Policy, bool OPT = false>
@@ -1453,7 +1461,7 @@ struct PresliceBase : public Policy {
     return Policy::getSliceFor(value, input, offset);
   }
 
-  gsl::span<const int64_t> getSliceFor(int value) const
+  std::span<const int64_t> getSliceFor(int value) const
   {
     if constexpr (OPT) {
       if (Policy::isMissing()) {
@@ -1549,7 +1557,7 @@ auto doSliceBy(T const* table, o2::framework::PresliceBase<C, Policy, OPT> const
 }
 
 template <soa::is_filtered_table T>
-auto doSliceByHelper(T const* table, gsl::span<const int64_t> const& selection)
+auto doSliceByHelper(T const* table, std::span<const int64_t> const& selection)
 {
   auto t = soa::Filtered<typename T::base_t>({table->asArrowTable()}, selection);
   table->copyIndexBindings(t);
@@ -1560,7 +1568,7 @@ auto doSliceByHelper(T const* table, gsl::span<const int64_t> const& selection)
 
 template <soa::is_table T>
   requires(!soa::is_filtered_table<T>)
-auto doSliceByHelper(T const* table, gsl::span<const int64_t> const& selection)
+auto doSliceByHelper(T const* table, std::span<const int64_t> const& selection)
 {
   auto t = soa::Filtered<T>({table->asArrowTable()}, selection);
   table->copyIndexBindings(t);
@@ -1581,7 +1589,7 @@ auto doSliceBy(T const* table, o2::framework::PresliceBase<C, Policy, OPT> const
   return doSliceByHelper(table, selection);
 }
 
-SelectionVector sliceSelection(gsl::span<int64_t const> const& mSelectedRows, int64_t nrows, uint64_t offset);
+SelectionVector sliceSelection(std::span<int64_t const> const& mSelectedRows, int64_t nrows, uint64_t offset);
 
 template <soa::is_filtered_table T>
 auto prepareFilteredSlice(T const* table, std::shared_ptr<arrow::Table> slice, uint64_t offset)
@@ -2011,7 +2019,7 @@ class Table
     return RowViewSentinel{mEnd};
   }
 
-  filtered_iterator filtered_begin(gsl::span<int64_t const> selection)
+  filtered_iterator filtered_begin(std::span<int64_t const> selection)
   {
     // Note that the FilteredIndexPolicy will never outlive the selection which
     // is held by the table, so we are safe passing the bare pointer. If it does it
@@ -2248,11 +2256,14 @@ ColumnGetterFunction<R, typename T::iterator> getColumnGetterByLabel(const std::
 
 namespace o2::aod
 {
+// If you get an error about not satisfying is_origin_hash, you need to add
+// an entry here.
 O2ORIGIN("AOD");
 O2ORIGIN("AOD1");
 O2ORIGIN("AOD2");
 O2ORIGIN("DYN");
 O2ORIGIN("IDX");
+O2ORIGIN("ATIM");
 O2ORIGIN("JOIN");
 O2HASH("JOIN/0");
 O2ORIGIN("CONC");
@@ -2312,6 +2323,48 @@ consteval static std::string_view namespace_prefix()
     }                                                                                                                                                                             \
   };                                                                                                                                                                              \
   [[maybe_unused]] static constexpr o2::framework::expressions::BindingNode _Getter_ { _Label_, _Name_::hash, o2::framework::expressions::selectArrowType<_Type_>() }
+
+#define DECLARE_SOA_CCDB_COLUMN_FULL(_Name_, _Label_, _Getter_, _ConcreteType_, _CCDBQuery_)                    \
+  struct _Name_ : o2::soa::Column<std::span<std::byte>, _Name_> {                                               \
+    static constexpr const char* mLabel = _Label_;                                                              \
+    static constexpr const char* query = _CCDBQuery_;                                                           \
+    static constexpr const uint32_t hash = crc32(namespace_prefix<_Name_>(), std::string_view{#_Getter_});      \
+    using base = o2::soa::Column<std::span<std::byte>, _Name_>;                                                 \
+    using type = std::span<std::byte>;                                                                          \
+    using column_t = _Name_;                                                                                    \
+    _Name_(arrow::ChunkedArray const* column)                                                                   \
+      : o2::soa::Column<std::span<std::byte>, _Name_>(o2::soa::ColumnIterator<std::span<std::byte>>(column))    \
+    {                                                                                                           \
+    }                                                                                                           \
+                                                                                                                \
+    _Name_() = default;                                                                                         \
+    _Name_(_Name_ const& other) = default;                                                                      \
+    _Name_& operator=(_Name_ const& other) = default;                                                           \
+                                                                                                                \
+    decltype(auto) _Getter_() const                                                                             \
+    {                                                                                                           \
+      static std::byte* payload = nullptr;                                                                      \
+      static _ConcreteType_* deserialised = nullptr;                                                            \
+      static TClass* c = TClass::GetClass(#_ConcreteType_);                                                     \
+      auto span = *mColumnIterator;                                                                             \
+      if (payload != (std::byte*)span.data()) {                                                                 \
+        payload = (std::byte*)span.data();                                                                      \
+        delete deserialised;                                                                                    \
+        TBufferFile f(TBufferFile::EMode::kRead, span.size(), (char*)span.data(), kFALSE);                      \
+        deserialised = (_ConcreteType_*)soa::extractCCDBPayload((char*)payload, span.size(), c, "ccdb_object"); \
+      }                                                                                                         \
+      return *deserialised;                                                                                     \
+    }                                                                                                           \
+                                                                                                                \
+    decltype(auto)                                                                                              \
+      get() const                                                                                               \
+    {                                                                                                           \
+      return _Getter_();                                                                                        \
+    }                                                                                                           \
+  };
+
+#define DECLARE_SOA_CCDB_COLUMN(_Name_, _Getter_, _ConcreteType_, _CCDBQuery_) \
+  DECLARE_SOA_CCDB_COLUMN_FULL(_Name_, "f" #_Name_, _Getter_, _ConcreteType_, _CCDBQuery_)
 
 #define DECLARE_SOA_COLUMN(_Name_, _Getter_, _Type_) \
   DECLARE_SOA_COLUMN_FULL(_Name_, _Getter_, _Type_, "f" #_Name_)
@@ -3188,6 +3241,43 @@ consteval auto getIndexTargets()
     using metadata = _Name_##Metadata;                                                                                                     \
   };
 
+// Declare were each row is associated to a timestamp column of an _TimestampSource_
+// table.
+//
+// The columns of this table have to be CCDB_COLUMNS so that for each timestamp, we get a row
+// which points to the specified CCDB objectes described by those columns.
+#define DECLARE_SOA_TIMESTAMPED_TABLE_FULL(_Name_, _Label_, _TimestampSource_, _TimestampColumn_, _Origin_, _Version_, _Desc_, ...) \
+  O2HASH(_Desc_ "/" #_Version_);                                                                                                    \
+  template <typename O>                                                                                                             \
+  using _Name_##TimestampFrom = soa::Table<o2::aod::Hash<_Label_ ""_h>, o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, O>;              \
+  using _Name_##Timestamp = _Name_##TimestampFrom<o2::aod::Hash<_Origin_ ""_h>>;                                                    \
+  template <typename O = o2::aod::Hash<_Origin_ ""_h>>                                                                              \
+  struct _Name_##TimestampMetadataFrom : TableMetadata<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, __VA_ARGS__> {                    \
+    using base_table_t = _TimestampSource_;                                                                                         \
+    using extension_table_t = _Name_##TimestampFrom<O>;                                                                             \
+    static constexpr const auto ccdb_urls = []<typename... Cs>(framework::pack<Cs...>) {                                            \
+      return std::array<std::string_view, sizeof...(Cs)>{Cs::query...};                                                             \
+    }(framework::pack<__VA_ARGS__>{});                                                                                              \
+    static constexpr const auto ccdb_bindings = []<typename... Cs>(framework::pack<Cs...>) {                                        \
+      return std::array<std::string_view, sizeof...(Cs)>{Cs::mLabel...};                                                            \
+    }(framework::pack<__VA_ARGS__>{});                                                                                              \
+    static constexpr auto sources = _TimestampSource_::originals;                                                                   \
+    static constexpr auto timestamp_column_label = _TimestampColumn_::mLabel;                                                       \
+    /*static constexpr auto timestampColumn = _TimestampColumn_;*/                                                                  \
+  };                                                                                                                                \
+  using _Name_##TimestampMetadata = _Name_##TimestampMetadataFrom<o2::aod::Hash<_Origin_ ""_h>>;                                    \
+  template <>                                                                                                                       \
+  struct MetadataTrait<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>> {                                                                 \
+    using metadata = _Name_##TimestampMetadata;                                                                                     \
+  };                                                                                                                                \
+  template <typename O>                                                                                                             \
+  using _Name_##From = o2::soa::JoinFull<o2::aod::Hash<_Desc_ "/" #_Version_ ""_h>, _TimestampSource_, _Name_##TimestampFrom<O>>;   \
+  using _Name_ = _Name_##From<o2::aod::Hash<_Origin_ ""_h>>;
+
+#define DECLARE_SOA_TIMESTAMPED_TABLE(_Name_, _TimestampSource_, _TimestampColumn_, _Version_, _Desc_, ...) \
+  O2HASH(#_Name_ "Timestamped");                                                                            \
+  DECLARE_SOA_TIMESTAMPED_TABLE_FULL(_Name_, #_Name_ "Timestamped", _TimestampSource_, _TimestampColumn_, "ATIM", _Version_, _Desc_, __VA_ARGS__)
+
 #define DECLARE_SOA_INDEX_TABLE(_Name_, _Key_, _Description_, ...) \
   DECLARE_SOA_INDEX_TABLE_FULL(_Name_, _Key_, "IDX", 0, _Description_, false, __VA_ARGS__)
 
@@ -3371,7 +3461,7 @@ class FilteredBase : public T
       mSelectedRowsCache{std::move(selection)},
       mCached{true}
   {
-    mSelectedRows = gsl::span{mSelectedRowsCache};
+    mSelectedRows = std::span{mSelectedRowsCache};
     if (this->tableSize() != 0) {
       mFilteredBegin = table_t::filtered_begin(mSelectedRows);
     }
@@ -3379,7 +3469,7 @@ class FilteredBase : public T
     mFilteredBegin.bindInternalIndices(this);
   }
 
-  FilteredBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, gsl::span<int64_t const> const& selection, uint64_t offset = 0)
+  FilteredBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::span<int64_t const> const& selection, uint64_t offset = 0)
     : T{std::move(tables), offset},
       mSelectedRows{selection}
   {
@@ -3458,12 +3548,12 @@ class FilteredBase : public T
   static inline auto getSpan(gandiva::Selection const& sel)
   {
     if (sel == nullptr) {
-      return gsl::span<int64_t const>{};
+      return std::span<int64_t const>{};
     }
     auto array = std::static_pointer_cast<arrow::Int64Array>(sel->ToArray());
     auto start = array->raw_values();
     auto stop = start + array->length();
-    return gsl::span{start, stop};
+    return std::span{start, stop};
   }
 
   /// Bind the columns which refer to other tables
@@ -3562,7 +3652,7 @@ class FilteredBase : public T
     resetRanges();
   }
 
-  void sumWithSelection(gsl::span<int64_t const> const& selection)
+  void sumWithSelection(std::span<int64_t const> const& selection)
   {
     mCached = true;
     SelectionVector rowsUnion;
@@ -3572,7 +3662,7 @@ class FilteredBase : public T
     resetRanges();
   }
 
-  void intersectWithSelection(gsl::span<int64_t const> const& selection)
+  void intersectWithSelection(std::span<int64_t const> const& selection)
   {
     mCached = true;
     SelectionVector intersection;
@@ -3591,7 +3681,7 @@ class FilteredBase : public T
   void resetRanges()
   {
     if (mCached) {
-      mSelectedRows = gsl::span{mSelectedRowsCache};
+      mSelectedRows = std::span{mSelectedRowsCache};
     }
     mFilteredEnd.reset(new RowViewSentinel{static_cast<int64_t>(mSelectedRows.size())});
     if (tableSize() == 0) {
@@ -3601,7 +3691,7 @@ class FilteredBase : public T
     }
   }
 
-  gsl::span<int64_t const> mSelectedRows;
+  std::span<int64_t const> mSelectedRows;
   SelectionVector mSelectedRowsCache;
   bool mCached = false;
   iterator mFilteredBegin;
@@ -3637,7 +3727,7 @@ class Filtered : public FilteredBase<T>
   Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
     : FilteredBase<T>(std::move(tables), std::forward<SelectionVector>(selection), offset) {}
 
-  Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, gsl::span<int64_t const> const& selection, uint64_t offset = 0)
+  Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::span<int64_t const> const& selection, uint64_t offset = 0)
     : FilteredBase<T>(std::move(tables), selection, offset) {}
 
   Filtered<T> operator+(SelectionVector const& selection)
@@ -3647,7 +3737,7 @@ class Filtered : public FilteredBase<T>
     return copy;
   }
 
-  Filtered<T> operator+(gsl::span<int64_t const> const& selection)
+  Filtered<T> operator+(std::span<int64_t const> const& selection)
   {
     Filtered<T> copy(*this);
     copy.sumWithSelection(selection);
@@ -3665,7 +3755,7 @@ class Filtered : public FilteredBase<T>
     return *this;
   }
 
-  Filtered<T> operator+=(gsl::span<int64_t const> const& selection)
+  Filtered<T> operator+=(std::span<int64_t const> const& selection)
   {
     this->sumWithSelection(selection);
     return *this;
@@ -3683,7 +3773,7 @@ class Filtered : public FilteredBase<T>
     return copy;
   }
 
-  Filtered<T> operator*(gsl::span<int64_t const> const& selection)
+  Filtered<T> operator*(std::span<int64_t const> const& selection)
   {
     Filtered<T> copy(*this);
     copy.intersectWithSelection(selection);
@@ -3701,7 +3791,7 @@ class Filtered : public FilteredBase<T>
     return *this;
   }
 
-  Filtered<T> operator*=(gsl::span<int64_t const> const& selection)
+  Filtered<T> operator*=(std::span<int64_t const> const& selection)
   {
     this->intersectWithSelection(selection);
     return *this;
@@ -3809,7 +3899,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
     }
   }
 
-  Filtered(std::vector<Filtered<T>>&& tables, gsl::span<int64_t const> const& selection, uint64_t offset = 0)
+  Filtered(std::vector<Filtered<T>>&& tables, std::span<int64_t const> const& selection, uint64_t offset = 0)
     : FilteredBase<typename T::table_t>(std::move(extractTablesFromFiltered(tables)), selection, offset)
   {
     for (auto& table : tables) {
@@ -3824,7 +3914,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
     return copy;
   }
 
-  Filtered<Filtered<T>> operator+(gsl::span<int64_t const> const& selection)
+  Filtered<Filtered<T>> operator+(std::span<int64_t const> const& selection)
   {
     Filtered<Filtered<T>> copy(*this);
     copy.sumWithSelection(selection);
@@ -3842,7 +3932,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
     return *this;
   }
 
-  Filtered<Filtered<T>> operator+=(gsl::span<int64_t const> const& selection)
+  Filtered<Filtered<T>> operator+=(std::span<int64_t const> const& selection)
   {
     this->sumWithSelection(selection);
     return *this;
@@ -3860,7 +3950,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
     return copy;
   }
 
-  Filtered<Filtered<T>> operator*(gsl::span<int64_t const> const& selection)
+  Filtered<Filtered<T>> operator*(std::span<int64_t const> const& selection)
   {
     Filtered<Filtered<T>> copy(*this);
     copy.intersectionWithSelection(selection);
@@ -3878,7 +3968,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
     return *this;
   }
 
-  Filtered<Filtered<T>> operator*=(gsl::span<int64_t const> const& selection)
+  Filtered<Filtered<T>> operator*=(std::span<int64_t const> const& selection)
   {
     this->intersectWithSelection(selection);
     return *this;
@@ -3987,7 +4077,7 @@ struct SmallGroupsBase : public Filtered<T> {
   SmallGroupsBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
     : Filtered<T>(std::move(tables), std::forward<SelectionVector>(selection), offset) {}
 
-  SmallGroupsBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, gsl::span<int64_t const> const& selection, uint64_t offset = 0)
+  SmallGroupsBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::span<int64_t const> const& selection, uint64_t offset = 0)
     : Filtered<T>(std::move(tables), selection, offset) {}
 };
 
