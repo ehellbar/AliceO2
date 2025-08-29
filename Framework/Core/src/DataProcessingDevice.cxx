@@ -141,7 +141,7 @@ void on_transition_requested_expired(uv_timer_t* handle)
     O2_SIGNPOST_EVENT_EMIT_ERROR(calibration, cid, "callback", "DPL exit transition grace period for source expired. Exiting.");
   } else {
     O2_SIGNPOST_EVENT_EMIT_ERROR(calibration, cid, "callback", "DPL exit transition grace period for %{public}s expired. Exiting.",
-                                    state.allowedProcessing == DeviceState::CalibrationOnly ? "calibration" : "data & calibration");
+                                 state.allowedProcessing == DeviceState::CalibrationOnly ? "calibration" : "data & calibration");
   }
   state.transitionHandling = TransitionHandlingState::Expired;
 }
