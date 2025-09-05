@@ -63,8 +63,8 @@ CallbacksPolicy epnProcessReporting()
       static bool report = DefaultsHelpers::deploymentMode() == DeploymentMode::OnlineDDS || forceReport;
       return report;
     },
-    .policy = [prescale](CallbackService& callbacks, InitContext& context) -> void {
-      callbacks.set<CallbackService::Id::PreProcessing>([prescale](ServiceRegistryRef registry, int op) {
+    .policy = [prescale, noDownscaling](CallbackService& callbacks, InitContext& context) -> void {
+      callbacks.set<CallbackService::Id::PreProcessing>([prescale, noDownscaling](ServiceRegistryRef registry, int op) {
         auto& info = registry.get<TimingInfo>();
         if ((int)info.firstTForbit != -1 && checkPrescale(info, prescale, true, noDownscaling)) {
           char const* what = info.isTimer() ? "timer" : "timeslice";
@@ -73,7 +73,7 @@ CallbacksPolicy epnProcessReporting()
         }
         info.lapse = uv_hrtime();
       });
-      callbacks.set<CallbackService::Id::PostProcessing>([prescale](ServiceRegistryRef registry, int op) {
+      callbacks.set<CallbackService::Id::PostProcessing>([prescale, noDownscaling](ServiceRegistryRef registry, int op) {
         auto& info = registry.get<TimingInfo>();
         if ((int)info.firstTForbit != -1 && checkPrescale(info, prescale, false, noDownscaling)) {
           char const* what = info.isTimer() ? "timer" : "timeslice";
