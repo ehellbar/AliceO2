@@ -23,7 +23,7 @@
 namespace o2::framework
 {
 
-static bool checkPrescale(const TimingInfo& info, int prescale, bool startProcessing)
+static bool checkPrescale(const TimingInfo& info, int prescale, bool startProcessing, bool noDownscaling)
 {
   if (prescale <= 1) {
     static size_t counter = 0;
@@ -31,7 +31,7 @@ static bool checkPrescale(const TimingInfo& info, int prescale, bool startProces
     if (startProcessing) {
       counter++;
     }
-    if (counter <= 100000) {
+    if (counter <= 100000 || noDownscaling) {
       return true;
     }
     if (counter > 100000 * downscaleFactor) {
@@ -53,6 +53,11 @@ CallbacksPolicy epnProcessReporting()
   if (!prescale) {
     prescale = 1;
   }
+  bool noDownscaling = false;
+  if (getenv("DPL_REPORT_PROCESSING_NO_DOWNSCALING") != nullptr) {
+    noDownscaling = true;
+  }
+
   return {
     .matcher = [forceReport](DeviceSpec const&, ConfigContext const& context) -> bool {
       static bool report = DefaultsHelpers::deploymentMode() == DeploymentMode::OnlineDDS || forceReport;
@@ -61,7 +66,7 @@ CallbacksPolicy epnProcessReporting()
     .policy = [prescale](CallbackService& callbacks, InitContext& context) -> void {
       callbacks.set<CallbackService::Id::PreProcessing>([prescale](ServiceRegistryRef registry, int op) {
         auto& info = registry.get<TimingInfo>();
-        if ((int)info.firstTForbit != -1 && checkPrescale(info, prescale, true)) {
+        if ((int)info.firstTForbit != -1 && checkPrescale(info, prescale, true, noDownscaling)) {
           char const* what = info.isTimer() ? "timer" : "timeslice";
           LOGP(info, "Processing {}:{}, tfCounter:{}, firstTForbit:{}, runNumber:{}, creation:{}, action:{}",
                what, info.timeslice, info.tfCounter, info.firstTForbit, info.runNumber, info.creation, op);
@@ -70,7 +75,7 @@ CallbacksPolicy epnProcessReporting()
       });
       callbacks.set<CallbackService::Id::PostProcessing>([prescale](ServiceRegistryRef registry, int op) {
         auto& info = registry.get<TimingInfo>();
-        if ((int)info.firstTForbit != -1 && checkPrescale(info, prescale, false)) {
+        if ((int)info.firstTForbit != -1 && checkPrescale(info, prescale, false, noDownscaling)) {
           char const* what = info.isTimer() ? "timer" : "timeslice";
           LOGP(info, "Done processing {}:{}, tfCounter:{}, firstTForbit:{}, runNumber:{}, creation:{}, action:{}, wall:{}",
                what, info.timeslice, info.tfCounter, info.firstTForbit, info.runNumber, info.creation, op, uv_hrtime() - info.lapse);
