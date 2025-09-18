@@ -237,6 +237,8 @@ if [[ $SYNCRAWMODE == 1 ]]; then
   if [[ $RUNTYPE == "PHYSICS" || $RUNTYPE == "COSMICS" || $RUNTYPE == "TECHNICAL" ]]; then
     GPU_CONFIG_KEY+="GPU_global.checkFirstTfOrbit=1;"
   fi
+  # dump raw data in case of GPU crash and set dump directory size limits; files are automatically cleaned by EPN after 60 days
+  GPU_CONFIG_KEY+="GPU_proc.debugOnFailure=1;GPU_proc.debugOnFailureDirectory=/data/tf/debug;GPU_proc.debugOnFailureMaxFiles=1000;GPU_proc.debugOnFailureMaxSize=500;GPU_proc.debugOnFailureSignalMask=2240;"
   # option for avoinding masking problematic channels from previous calibrations
   TOF_CONFIG+=" --for-calib"
 fi
