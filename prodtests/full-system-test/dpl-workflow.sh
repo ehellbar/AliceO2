@@ -145,6 +145,8 @@ if [[ $SYNCMODE == 1 ]]; then
     fi
   fi
   GPU_CONFIG_KEY+="GPU_global.synchronousProcessing=1;GPU_proc.clearO2OutputFromGPU=1;"
+  # dump raw data in case of GPU crash and set dump directory size limits; files are automatically cleaned by EPN after 60 days
+  GPU_CONFIG_KEY+="GPU_proc.debugOnFailure=1;GPU_proc.debugOnFailureDirectory=/data/tf/debug;GPU_proc.debugOnFailureMaxFiles=1000;GPU_proc.debugOnFailureMaxSize=500;GPU_proc.debugOnFailureSignalMask=2240;"
   has_processing_step TPC_DEDX && GPU_CONFIG_KEY+="GPU_global.rundEdx=1;"
   has_detector ITS && TRD_FILTER_CONFIG+=" --filter-trigrec"
 else
