@@ -135,15 +135,16 @@ void on_transition_requested_expired(uv_timer_t* handle)
 {
   auto* ref = (ServiceRegistryRef*)handle->data;
   auto& state = ref->get<DeviceState>();
+  auto& deviceContext = ref->get<DeviceContext>();
   state.loopReason |= DeviceState::TIMER_EXPIRED;
   // Check if this is a source device
   O2_SIGNPOST_ID_FROM_POINTER(cid, device, handle);
   auto& spec = ref->get<DeviceSpec const>();
-  if (hasOnlyGenerated(spec)) {
-    O2_SIGNPOST_EVENT_EMIT_ERROR(calibration, cid, "callback", "DPL exit transition grace period for source expired. Exiting.");
+  std::string messageOnExpire = hasOnlyGenerated(spec) ? "DPL exit transition grace period for source expired. Exiting." : fmt::format("DPL exit transition grace period for {} expired. Exiting.", state.allowedProcessing == DeviceState::CalibrationOnly ? "calibration" : "data & calibration").c_str();
+  if (!deviceContext.errorOnExitTransitionTimeout) {
+    O2_SIGNPOST_EVENT_EMIT_WARN(calibration, cid, "callback", "%{public}s", messageOnExpire.c_str());
   } else {
-    O2_SIGNPOST_EVENT_EMIT_ERROR(calibration, cid, "callback", "DPL exit transition grace period for %{public}s expired. Exiting.",
-                                 state.allowedProcessing == DeviceState::CalibrationOnly ? "calibration" : "data & calibration");
+    O2_SIGNPOST_EVENT_EMIT_ERROR(calibration, cid, "callback", "%{public}s", messageOnExpire.c_str());
   }
   state.transitionHandling = TransitionHandlingState::Expired;
 }
@@ -1059,6 +1060,7 @@ void DataProcessingDevice::InitTask()
   deviceContext.expectedRegionCallbacks = std::stoi(fConfig->GetValue<std::string>("expected-region-callbacks"));
   deviceContext.exitTransitionTimeout = std::stoi(fConfig->GetValue<std::string>("exit-transition-timeout"));
   deviceContext.dataProcessingTimeout = std::stoi(fConfig->GetValue<std::string>("data-processing-timeout"));
+  deviceContext.errorOnExitTransitionTimeout = fConfig->GetValue<bool>("error-on-exit-transition-timeout");
 
   for (auto& channel : GetChannels()) {
     channel.second.at(0).Transport()->SubscribeToRegionEvents([&context = deviceContext,
