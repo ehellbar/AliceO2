@@ -33,6 +33,7 @@ struct DeviceContext {
   int expectedRegionCallbacks = 0;
   int exitTransitionTimeout = 0;
   int dataProcessingTimeout = 0;
+  bool errorOnExitTransitionTimeout = false;
 };
 
 } // namespace o2::framework
