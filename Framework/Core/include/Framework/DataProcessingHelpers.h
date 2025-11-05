@@ -43,7 +43,7 @@ struct DataProcessingHelpers {
   static void switchState(ServiceRegistryRef const& ref, StreamingState newState);
   /// check if spec is a source devide
   static bool hasOnlyGenerated(DeviceSpec const& spec);
-  /// starts the EoS timers and returns the new TransitionHandlingState in case as new state is requested 
+  /// starts the EoS timers and returns the new TransitionHandlingState in case as new state is requested
   static TransitionHandlingState updateStateTransition(ServiceRegistryRef const& ref, ProcessingPolicies const& policies);
 };
 
