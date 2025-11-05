@@ -1063,7 +1063,8 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
                              source == 0, // background
                              mMcParticleW,
                              mMcParticleMom,
-                             mMcParticlePos);
+                             mMcParticlePos,
+                             mUseSigFiltMC);
 
     mcReader.releaseTracksForSourceAndEvent(source, event);
   }
@@ -2126,9 +2127,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                          0,
                          sourceID);
         }
-        if (sourceID != 0 || !mUseSigFiltMC) {
-          mcColToEvSrc.emplace_back(std::vector<int>{iCol, sourceID, eventID}); // point background and injected signal events to one collision
-        }
+        mcColToEvSrc.emplace_back(std::vector<int>{iCol, sourceID, eventID}); // point background and injected signal events to one collision
       }
     }
   }
