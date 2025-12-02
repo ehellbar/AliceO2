@@ -145,6 +145,8 @@ if [[ $SYNCMODE == 1 ]]; then
     fi
   fi
   GPU_CONFIG_KEY+="GPU_global.synchronousProcessing=1;GPU_proc.clearO2OutputFromGPU=1;"
+  # relaxed cuts also used for async reconstruction
+  GPU_CONFIG_KEY+="GPU_rec_tpc.trackletMinSharedNormFactor=1.;GPU_rec_tpc.trackletMaxSharedFraction=0.3;GPU_rec_tpc.rejectIFCLowRadiusCluster=1;GPU_rec_tpc.extrapolationTrackingRowRange=100;GPU_rec_tpc.clusterError2AdditionalYSeeding=0.1;GPU_rec_tpc.clusterError2AdditionalZSeeding=0.15;"
   has_processing_step TPC_DEDX && GPU_CONFIG_KEY+="GPU_global.rundEdx=1;"
   has_detector ITS && TRD_FILTER_CONFIG+=" --filter-trigrec"
 else
