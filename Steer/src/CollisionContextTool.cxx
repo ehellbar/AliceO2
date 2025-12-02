@@ -260,8 +260,15 @@ bool copy_collision_context(const std::string& external_path, int this_tf_id, in
 {
   namespace fs = std::filesystem;
   try {
-    // Construct source file path
-    fs::path filename = fs::path(external_path) / ("collission_context_" + std::to_string(this_tf_id) + ".root");
+    fs::path filename;
+    if (fs::exists(external_path) && fs::is_regular_file(external_path)) {
+      std::cout << "external_path is an existing file: " << external_path << "\n";
+      // use it directly
+      filename = fs::path(external_path);
+    } else {
+      // Construct source file path
+      filename = fs::path(external_path) / ("collission_context_" + std::to_string(this_tf_id) + ".root");
+    }
 
     LOG(info) << "Checking existence of file: " << filename;
 
@@ -552,8 +559,18 @@ int main(int argc, char* argv[])
   }
   digicontext.setBunchFilling(bunchFillings[0]);
   std::vector<std::string> prefixes;
+  // Signal interaction rate
+  float sgnIRate = -1.;
   for (auto& p : ispecs) {
     prefixes.push_back(p.name);
+    // Set the interaction rate from the first pattern with a valid value.
+    // This handles both simple signal-only productions (where "sgn" has the rate)
+    // and embedding productions (where "bkg" has the rate and "sgn" syncs to it)
+    if (sgnIRate < 0 && p.interactionRate > 0) {
+      LOG(debug) << "Setting signal interaction rate to " << p.interactionRate << " Hz in the digitization context.";
+      sgnIRate = p.interactionRate;
+      digicontext.setDigitizerInteractionRate(p.interactionRate);
+    }
   }
   digicontext.setSimPrefixes(prefixes);
 

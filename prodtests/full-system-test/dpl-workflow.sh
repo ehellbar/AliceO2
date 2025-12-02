@@ -145,6 +145,8 @@ if [[ $SYNCMODE == 1 ]]; then
     fi
   fi
   GPU_CONFIG_KEY+="GPU_global.synchronousProcessing=1;GPU_proc.clearO2OutputFromGPU=1;"
+  # relaxed cuts also used for async reconstruction
+  GPU_CONFIG_KEY+="GPU_rec_tpc.trackletMinSharedNormFactor=1.;GPU_rec_tpc.trackletMaxSharedFraction=0.3;GPU_rec_tpc.rejectIFCLowRadiusCluster=1;GPU_rec_tpc.extrapolationTrackingRowRange=100;GPU_rec_tpc.clusterError2AdditionalYSeeding=0.1;GPU_rec_tpc.clusterError2AdditionalZSeeding=0.15;"
   has_processing_step TPC_DEDX && GPU_CONFIG_KEY+="GPU_global.rundEdx=1;"
   has_detector ITS && TRD_FILTER_CONFIG+=" --filter-trigrec"
 else
@@ -627,6 +629,12 @@ has_detector_reco ITS && has_detector_gpu ITS TPC && [[ -z "$DISABLE_ROOT_OUTPUT
 # always run vertexing if requested and if there are some sources, but in cosmic mode we work in pass-trough mode (create record for non-associated tracks)
 ( [[ $BEAMTYPE == "cosmic" ]] || ! has_detector_reco ITS) && PVERTEX_CONFIG+=" --skip"
 has_detector_matching PRIMVTX && [[ -n "$VERTEXING_SOURCES" ]] && [[ $GLOBAL_READER_NEEDS_PV != 1 ]] && add_W o2-primary-vertexing-workflow "$DISABLE_MC $DISABLE_ROOT_INPUT $DISABLE_ROOT_OUTPUT $PVERTEX_CONFIG --pipeline $(get_N primary-vertexing MATCH REST 1 PRIMVTX),$(get_N pvertex-track-matching MATCH REST 1 PRIMVTXMATCH)" "${PVERTEXING_CONFIG_KEY};${INTERACTION_TAG_CONFIG_KEY};"
+
+if [[ -z ${SVERTEXING_SOURCES:-} ]]; then
+  [[ $SYNCMODE == 1 ]] && [[ -n $TRACK_SOURCES_GLO ]] && SVERTEXING_SOURCES="$TRACK_SOURCES_GLO" || SVERTEXING_SOURCES="$VERTEXING_SOURCES"
+elif [[ "${SVERTEXING_SOURCES^^}" == "NONE" ]]; then
+  SVERTEXING_SOURCES=
+fi
 
 if [[ $BEAMTYPE != "cosmic" ]] && has_detectors_reco ITS && has_detector_matching SECVTX && [[ -n "$SVERTEXING_SOURCES" ]]; then
   : ${REDUCESV_OPT:=}
