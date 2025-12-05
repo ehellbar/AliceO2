@@ -542,7 +542,6 @@ int32_t GPUQA::InitQACreateHistograms()
     createHist(mT0[0], "tracks_t0", "tracks_t0", (maxTime + 1) / 10, 0, maxTime);
     createHist(mT0[1], "tracks_t0_res", "tracks_t0_res", 1000, -100, 100);
     createHist(mClXY, "clXY", "clXY", 1000, -250, 250, 1000, -250, 250); // TODO: Pass name only once
-
   }
 
   if ((mQATasks & taskClusterCounts) && mConfig.clusterRejectionHistograms) {
@@ -2944,7 +2943,6 @@ int32_t GPUQA::DrawQAHistograms(TObjArray* qcout)
     if (mConfig.writeFileExt != "") {
       mCClXY->Print(Form("%s/clustersXY.%s", mConfig.plotsDir.c_str(), mConfig.writeFileExt.c_str()));
     }
-
   }
 
   if (tout && !mConfig.inputHistogramsOnly && mConfig.writeMCLabels) {
