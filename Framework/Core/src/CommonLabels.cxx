@@ -9,15 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#include "Framework/CommonLabels.h"
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+namespace o2::framework
+{
 
-#pragma link C++ class o2::its::RecoGeomHelper + ;
-#pragma link C++ class o2::its::FastMultEst + ;
-#pragma link C++ class o2::its::FastMultEstConfig + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::its::FastMultEstConfig> + ;
+const DataProcessorLabel suppressDomainInfoLabel = {"suppress-domain-info"};
 
-#endif
+} // namespace o2::framework
