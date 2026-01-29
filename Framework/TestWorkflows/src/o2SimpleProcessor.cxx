@@ -73,15 +73,21 @@ WorkflowSpec defineDataProcessing(ConfigContext const& ctx)
     outputs.emplace_back(eosOut);
   }
 
-  AlgorithmSpec algo = adaptStateful([outputRefs, eosRefs, processingDelay, eosDelay](CallbackService& service) {
+  AlgorithmSpec algo = adaptStateful([inputs, outputRefs, eosRefs, processingDelay, eosDelay](CallbackService& service) {
     service.set<o2::framework::CallbackService::Id::EndOfStream>([eosRefs, eosDelay](EndOfStreamContext&) {
       LOG(info) << "Creating objects on end of stream reception.";
       std::this_thread::sleep_for(std::chrono::seconds(eosDelay));
     });
 
     return adaptStateless(
-      [outputRefs, processingDelay](InputRecord& inputs, DataAllocator& outputs) {
-        LOG(info) << "Received " << inputs.size() << " messages. Converting.";
+      [inputs, outputRefs, processingDelay](InputRecord& inputRec, DataAllocator& outputs) {
+        LOG(info) << "Received " << inputRec.size() << " messages. Converting.";
+        if (inputRec.size() > 0 && inputRec.getByPos(0).spec->binding != "enumeration") {
+          for (size_t i = 0; i < inputRec.size(); ++i) {
+            LOG(info) << "Getting input " << i << " with binding " << inputRec.getByPos(i).spec->binding;
+            auto data = inputRec.get<int>(inputs[i].binding);
+          }
+        }
         auto i = 0;
         std::this_thread::sleep_for(std::chrono::milliseconds(processingDelay));
         for (auto& ref : outputRefs) {
