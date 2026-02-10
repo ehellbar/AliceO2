@@ -42,14 +42,23 @@ namespace mid
 namespace specs
 {
 
-/// Returns the input specs for MID Column Data and corresponding ROFs and labels
+/// Returns the input specs for MID Column Data and corresponding ROFs and labels for EventType Standard
 /// \param dataBind Data binding name
 /// \param dataDesc Input data description
 /// \param useMC Builds output specs for labels
 /// \return Vector of input specs
-std::vector<framework::InputSpec> buildInputSpecs(std::string_view dataBind, std::string_view dataDesc, bool useMC);
+std::vector<framework::InputSpec> buildStandardInputSpecs(std::string_view dataBind, std::string_view dataDesc, bool useMC);
 
-/// Returns the input specs for MID Column Data and corresponding ROFs and labels
+/// Returns the input specs for MID Column Data and corresponding ROFs and labels for EventType Standard
+/// \param dataBind Data binding name
+/// \param dataDesc Input data description
+/// \param rofDesc Input ROF record description
+/// \param labelsDesc Input MC labels description
+/// \param useMC Builds output specs for labels
+/// \return Vector of input specs
+std::vector<framework::InputSpec> buildStandardInputSpecs(std::string_view dataBind, std::string_view dataDesc, std::string_view rofDesc, std::string_view labelsDesc, bool useMC);
+
+/// Returns the input specs for MID Column Data and corresponding ROFs and labels for all three EventTypes
 /// \param dataBind Data binding name
 /// \param dataDesc Input data description
 /// \param rofDesc Input ROF record description
