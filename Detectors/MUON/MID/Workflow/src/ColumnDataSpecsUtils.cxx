@@ -83,14 +83,26 @@ std::string buildSelectors(std::string_view dataBind, std::string_view dataDesc,
   return selector;
 }
 
-std::vector<framework::InputSpec> buildInputSpecs(std::string_view dataBind, std::string_view dataDesc, bool useMC)
-{
-  return buildInputSpecs(dataBind, dataDesc, getROFDescription(dataDesc), getLabelsDescription(dataDesc), useMC);
-}
-
 std::vector<framework::InputSpec> buildInputSpecs(std::string_view dataBind, std::string_view dataDesc, std::string_view rofDesc, std::string_view labelsDesc, bool useMC)
 {
-  std::string selector = buildSelectors(dataBind, dataDesc, rofDesc, labelsDesc, useMC);
+  std::string selector;
+  for (size_t ievt = 0; ievt < NEvTypes; ++ievt) {
+    if (!selector.empty()) {
+      selector += ";";
+    }
+    selector += buildSelectors(dataBind, dataDesc, rofDesc, labelsDesc, useMC, ievt);
+  }
+  return framework::select(selector.c_str());
+}
+
+std::vector<framework::InputSpec> buildStandardInputSpecs(std::string_view dataBind, std::string_view dataDesc, bool useMC)
+{
+  return buildStandardInputSpecs(dataBind, dataDesc, getROFDescription(dataDesc), getLabelsDescription(dataDesc), useMC);
+}
+
+std::vector<framework::InputSpec> buildStandardInputSpecs(std::string_view dataBind, std::string_view dataDesc, std::string_view rofDesc, std::string_view labelsDesc, bool useMC)
+{
+  std::string selector = buildSelectors(dataBind, dataDesc, rofDesc, labelsDesc, useMC, 0);
   return framework::select(selector.c_str());
 }
 

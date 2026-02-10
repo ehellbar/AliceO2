@@ -145,8 +145,10 @@ class MaskMakerDeviceDPL
 framework::DataProcessorSpec getMaskMakerSpec(const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks)
 {
   std::vector<of::InputSpec> inputSpecs;
-  inputSpecs.emplace_back("mid_data", of::ConcreteDataTypeMatcher(header::gDataOriginMID, "DATA"), of::Lifetime::Timeframe);
-  inputSpecs.emplace_back("mid_data_rof", of::ConcreteDataTypeMatcher(header::gDataOriginMID, "DATAROF"), of::Lifetime::Timeframe);
+  for (o2::header::DataHeader::SubSpecificationType subSpec = 1; subSpec < NEvTypes; ++subSpec) {
+    inputSpecs.emplace_back("mid_data", o2::header::gDataOriginMID, "DATA", subSpec, of::Lifetime::Timeframe);
+    inputSpecs.emplace_back("mid_data_rof", o2::header::gDataOriginMID, "DATAROF", subSpec, of::Lifetime::Timeframe);
+  }
 
   std::vector<of::OutputSpec> outputSpecs{
     of::OutputSpec{header::gDataOriginMID, "MASKS", 1},

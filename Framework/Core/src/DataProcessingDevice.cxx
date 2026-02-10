@@ -1070,6 +1070,15 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
         break;
       }
     }
+    // Output proxies should wait for the completion policy before forwarding.
+    // Because they actually do not do anything, that's equivalent to
+    // forwarding after the processing.
+    for (auto& label : spec.labels) {
+      if (label.value == "output-proxy") {
+        defaultEarlyForwardPolicy = ForwardPolicy::AfterProcessing;
+        break;
+      }
+    }
 
     /// We must make sure there is no optional
     /// if we want to optimize the forwarding
@@ -1390,12 +1399,12 @@ void DataProcessingDevice::Run()
         if (schedulingStats.numberOfUnscheduledSinceLastScheduled > 100 ||
             (uv_now(state.loop) - schedulingStats.lastScheduled) > 30000) {
           O2_SIGNPOST_EVENT_EMIT_WARN(scheduling, sid, "Run",
-                                      "Not enough resources to schedule computation. %zu skipped so far. Last scheduled at %zu.",
+                                      "Not enough resources to schedule computation. %zu skipped so far. Last scheduled at %zu. Data is not lost and it will be scheduled again.",
                                       schedulingStats.numberOfUnscheduledSinceLastScheduled.load(),
                                       schedulingStats.lastScheduled.load());
         } else {
           O2_SIGNPOST_EVENT_EMIT(scheduling, sid, "Run",
-                                 "Not enough resources to schedule computation. %zu skipped so far. Last scheduled at %zu.",
+                                 "Not enough resources to schedule computation. %zu skipped so far. Last scheduled at %zu. Data is not lost and it will be scheduled again.",
                                  schedulingStats.numberOfUnscheduledSinceLastScheduled.load(),
                                  schedulingStats.lastScheduled.load());
         }
