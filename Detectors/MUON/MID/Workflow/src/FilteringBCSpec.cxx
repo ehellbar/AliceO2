@@ -68,8 +68,8 @@ class FilteringBCDeviceDPL
   {
     updateTimeDependentParams(pc);
 
-    auto data = specs::getData(pc, "mid_filter_BC_in", EventType::Standard);
-    auto inROFRecords = specs::getRofs(pc, "mid_filter_BC_in", EventType::Standard);
+    auto data = specs::getDataEventType(pc, "mid_filter_BC_in", EventType::Standard);
+    auto inROFRecords = specs::getRofsEventType(pc, "mid_filter_BC_in", EventType::Standard);
 
     auto inMCContainer = mUseMC ? specs::getLabels(pc, "mid_filter_BC_in") : nullptr;
 
@@ -100,7 +100,7 @@ class FilteringBCDeviceDPL
 of::DataProcessorSpec getFilteringBCSpec(bool useMC, std::string_view inDesc)
 {
 
-  auto inputSpecs = specs::buildInputSpecs("mid_filter_BC_in", inDesc, useMC);
+  auto inputSpecs = specs::buildStandardInputSpecs("mid_filter_BC_in", inDesc, useMC);
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
                                                               false,                          // GRPECS=true
                                                               true,                           // GRPLHCIF

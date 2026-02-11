@@ -102,8 +102,10 @@ void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
 DataProcessorSpec getEntropyEncoderSpec(bool selIR, const std::string& ctfdictOpt)
 {
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("rofs", ConcreteDataTypeMatcher(header::gDataOriginMID, "DATAROF"), Lifetime::Timeframe);
-  inputs.emplace_back("cols", ConcreteDataTypeMatcher(header::gDataOriginMID, "DATA"), Lifetime::Timeframe);
+  for (o2::header::DataHeader::SubSpecificationType subSpec = 0; subSpec < NEvTypes; ++subSpec) {
+    inputs.emplace_back("cols", header::gDataOriginMID, "DATA", subSpec, Lifetime::Timeframe);
+    inputs.emplace_back("rofs", header::gDataOriginMID, "DATAROF", subSpec, Lifetime::Timeframe);
+  }
 
   if (ctfdictOpt.empty() || ctfdictOpt == "ccdb") {
     inputs.emplace_back("ctfdict", header::gDataOriginMID, "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("MID/Calib/CTFDictionaryTree"));
