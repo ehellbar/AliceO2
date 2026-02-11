@@ -47,8 +47,8 @@ class ZeroSuppressionDeviceDPL
 
   void run(o2::framework::ProcessingContext& pc)
   {
-    const auto patterns = specs::getData(pc, "mid_zs_in", EventType::Standard);
-    const auto inROFRecords = specs::getRofs(pc, "mid_zs_in", EventType::Standard);
+    const auto patterns = specs::getDataEventType(pc, "mid_zs_in", EventType::Standard);
+    const auto inROFRecords = specs::getRofsEventType(pc, "mid_zs_in", EventType::Standard);
     const auto inMCContainer = mUseMC ? specs::getLabels(pc, "mid_zs_in") : nullptr;
 
     o2::dataformats::MCTruthContainer<MCLabel> outMCContainer;
@@ -103,7 +103,7 @@ class ZeroSuppressionDeviceDPL
 
 framework::DataProcessorSpec getZeroSuppressionSpec(bool useMC, std::string_view dataDesc)
 {
-  auto inputSpecs = specs::buildInputSpecs("mid_zs_in", dataDesc, useMC);
+  auto inputSpecs = specs::buildStandardInputSpecs("mid_zs_in", dataDesc, useMC);
   auto outputSpecs = specs::buildStandardOutputSpecs("mid_zs_out", "DATA", useMC);
 
   return of::DataProcessorSpec{
