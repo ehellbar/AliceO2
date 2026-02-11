@@ -165,7 +165,6 @@ std::array<gsl::span<const ROFRecord>, NEvTypes> getRofs(framework::ProcessingCo
   std::array<gsl::span<const ROFRecord>, 3> data;
   for (size_t ievt = 0; ievt < NEvTypes; ++ievt) {
     data[ievt] = getInput<ROFRecord>(pc, fmt::format("{}_{}", getROFBind(dataBind).data(), ievt));
-
   }
 
   return data;
