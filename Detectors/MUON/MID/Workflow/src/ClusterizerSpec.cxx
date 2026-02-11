@@ -77,8 +77,8 @@ class ClusterizerDeviceDPL
   {
     auto tStart = std::chrono::high_resolution_clock::now();
 
-    gsl::span<const ColumnData> patterns = specs::getData(pc, "mid_cluster_in", EventType::Standard);
-    gsl::span<const ROFRecord> inROFRecords = specs::getRofs(pc, "mid_cluster_in", EventType::Standard);
+    gsl::span<const ColumnData> patterns = specs::getDataEventType(pc, "mid_cluster_in", EventType::Standard);
+    gsl::span<const ROFRecord> inROFRecords = specs::getRofsEventType(pc, "mid_cluster_in", EventType::Standard);
 
     // Pre-clustering
     auto tAlgoStart = std::chrono::high_resolution_clock::now();
@@ -132,7 +132,7 @@ framework::DataProcessorSpec getClusterizerSpec(bool isMC, std::string_view inDa
   if (isMC) {
     outputSpecs.emplace_back(of::OutputSpec{header::gDataOriginMID, "CLUSTERSLABELS"});
   }
-  auto inputSpecs = specs::buildInputSpecs("mid_cluster_in", inDataDesc, inRofDesc, inLabelsDesc, isMC);
+  auto inputSpecs = specs::buildStandardInputSpecs("mid_cluster_in", inDataDesc, inRofDesc, inLabelsDesc, isMC);
 
   return of::DataProcessorSpec{
     "MIDClusterizer",

@@ -94,8 +94,8 @@ class FilteringDeviceDPL
     pc.inputs().get<std::vector<ColumnData>*>("mid_bad_channels");
     pc.inputs().get<std::vector<ColumnData>*>("mid_rejectlist");
 
-    auto data = specs::getData(pc, "mid_filter_in", EventType::Standard);
-    auto inROFRecords = specs::getRofs(pc, "mid_filter_in", EventType::Standard);
+    auto data = specs::getDataEventType(pc, "mid_filter_in", EventType::Standard);
+    auto inROFRecords = specs::getRofsEventType(pc, "mid_filter_in", EventType::Standard);
 
     std::unique_ptr<const o2::dataformats::MCTruthContainer<MCLabel>> inMCContainer = mUseMC ? specs::getLabels(pc, "mid_filter_in") : nullptr;
 
@@ -143,7 +143,7 @@ class FilteringDeviceDPL
 of::DataProcessorSpec getFilteringSpec(bool useMC, std::string_view inDesc, std::string_view outDesc)
 {
 
-  auto inputSpecs = specs::buildInputSpecs("mid_filter_in", inDesc, useMC);
+  auto inputSpecs = specs::buildStandardInputSpecs("mid_filter_in", inDesc, useMC);
   inputSpecs.emplace_back("mid_bad_channels", header::gDataOriginMID, "BAD_CHANNELS", 0, of::Lifetime::Condition, of::ccdbParamSpec("MID/Calib/BadChannels"));
   inputSpecs.emplace_back("mid_rejectlist", header::gDataOriginMID, "REJECTLIST", 0, of::Lifetime::Condition, of::ccdbParamSpec("MID/Calib/RejectList"));
 
