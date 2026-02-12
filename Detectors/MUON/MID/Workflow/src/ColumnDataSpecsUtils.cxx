@@ -176,9 +176,9 @@ gsl::span<const ROFRecord> getRofsEventType(framework::ProcessingContext& pc, st
   return getInput<ROFRecord>(pc, fmt::format("{}_{}", getROFBind(dataBind).data(), idx));
 }
 
-std::unique_ptr<const o2::dataformats::MCTruthContainer<MCLabel>> getLabels(framework::ProcessingContext& pc, std::string_view dataBind)
+std::unique_ptr<const o2::dataformats::MCTruthContainer<MCLabel>> getLabels(framework::ProcessingContext& pc, std::string_view dataBind, EventType eventType)
 {
-  return pc.inputs().get<const o2::dataformats::MCTruthContainer<MCLabel>*>(getLabelsBind(dataBind).data());
+  return pc.inputs().get<const o2::dataformats::MCTruthContainer<MCLabel>*>(fmt::format("{}_{}", getLabelsBind(dataBind).data(), static_cast<size_t>(eventType)));
 }
 
 } // namespace specs

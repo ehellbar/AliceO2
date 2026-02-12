@@ -129,7 +129,7 @@ gsl::span<const ROFRecord> getRofsEventType(framework::ProcessingContext& pc, st
 /// \param pc Processing context
 /// \param dataBind Data binding name
 /// \return Pointer to MC labels
-std::unique_ptr<const o2::dataformats::MCTruthContainer<MCLabel>> getLabels(framework::ProcessingContext& pc, std::string_view dataBind);
+std::unique_ptr<const o2::dataformats::MCTruthContainer<MCLabel>> getLabels(framework::ProcessingContext& pc, std::string_view dataBind, EventType eventType = EventType::Standard);
 
 } // namespace specs
 } // namespace mid
