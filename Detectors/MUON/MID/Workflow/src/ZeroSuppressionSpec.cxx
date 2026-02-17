@@ -53,8 +53,8 @@ class ZeroSuppressionDeviceDPL
 
     o2::dataformats::MCTruthContainer<MCLabel> outMCContainer;
 
-    auto& zsData = pc.outputs().make<std::vector<ColumnData>>(of::OutputRef{"mid_zs_out_0"});
-    auto& zsROFs = pc.outputs().make<std::vector<ROFRecord>>(of::OutputRef{"mid_zs_out_rof_0"});
+    auto& zsData = pc.outputs().make<std::vector<ColumnData>>(of::OutputRef{"mid_zs_out"});
+    auto& zsROFs = pc.outputs().make<std::vector<ROFRecord>>(of::OutputRef{"mid_zs_out_rof"});
 
     zsData.reserve(patterns.size());
     zsROFs.reserve(inROFRecords.size());
@@ -103,7 +103,7 @@ class ZeroSuppressionDeviceDPL
 
 framework::DataProcessorSpec getZeroSuppressionSpec(bool useMC, std::string_view dataDesc)
 {
-  auto inputSpecs = specs::buildInputSpecs("mid_zs_in", dataDesc, useMC);
+  auto inputSpecs = specs::buildStandardInputSpecs("mid_zs_in", dataDesc, useMC);
   auto outputSpecs = specs::buildStandardOutputSpecs("mid_zs_out", "DATA", useMC);
 
   return of::DataProcessorSpec{

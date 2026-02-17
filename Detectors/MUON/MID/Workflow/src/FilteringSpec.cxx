@@ -99,8 +99,8 @@ class FilteringDeviceDPL
 
     std::unique_ptr<const o2::dataformats::MCTruthContainer<MCLabel>> inMCContainer = mUseMC ? specs::getLabels(pc, "mid_filter_in") : nullptr;
 
-    auto& maskedData = pc.outputs().make<std::vector<ColumnData>>(of::OutputRef{"mid_filter_out_0"});
-    auto& maskedRofs = pc.outputs().make<std::vector<ROFRecord>>(of::OutputRef{"mid_filter_out_rof_0"});
+    auto& maskedData = pc.outputs().make<std::vector<ColumnData>>(of::OutputRef{"mid_filter_out"});
+    auto& maskedRofs = pc.outputs().make<std::vector<ROFRecord>>(of::OutputRef{"mid_filter_out_rof"});
 
     maskedData.reserve(data.size());
     maskedRofs.reserve(inROFRecords.size());
@@ -143,7 +143,7 @@ class FilteringDeviceDPL
 of::DataProcessorSpec getFilteringSpec(bool useMC, std::string_view inDesc, std::string_view outDesc)
 {
 
-  auto inputSpecs = specs::buildInputSpecs("mid_filter_in", inDesc, useMC);
+  auto inputSpecs = specs::buildStandardInputSpecs("mid_filter_in", inDesc, useMC);
   inputSpecs.emplace_back("mid_bad_channels", header::gDataOriginMID, "BAD_CHANNELS", 0, of::Lifetime::Condition, of::ccdbParamSpec("MID/Calib/BadChannels"));
   inputSpecs.emplace_back("mid_rejectlist", header::gDataOriginMID, "REJECTLIST", 0, of::Lifetime::Condition, of::ccdbParamSpec("MID/Calib/RejectList"));
 
