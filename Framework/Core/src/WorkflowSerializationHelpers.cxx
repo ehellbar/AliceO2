@@ -968,8 +968,17 @@ bool WorkflowSerializationHelpers::import(std::istream& s,
   rapidjson::IStreamWrapper isw(s);
   WorkflowImporter importer{workflow, metadata, command};
   bool ok = reader.Parse(isw, importer);
-  if (ok == false) {
+  if (ok == false && s.eof()) {
     throw std::runtime_error("Error while parsing serialised workflow");
+  } else {
+    // clean up leftovers at the end of the input stream, e.g. [DEBUG] message from destructors
+    while (true) {
+      s.getline(buf, 1024, '\n');
+      if (s.eof()) {
+        break;
+      }
+      LOG(debug) << "following leftover line found in input stream after parsing workflow: " << buf;
+    }
   }
   return true;
 }
