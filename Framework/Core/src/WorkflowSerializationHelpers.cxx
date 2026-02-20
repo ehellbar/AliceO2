@@ -969,7 +969,19 @@ bool WorkflowSerializationHelpers::import(std::istream& s,
   WorkflowImporter importer{workflow, metadata, command};
   bool ok = reader.Parse(isw, importer);
   if (ok == false) {
-    throw std::runtime_error("Error while parsing serialised workflow");
+    if (s.eof()) {
+      throw std::runtime_error("Error while parsing serialised workflow");
+    } else {
+      // clean up leftovers at the end of the input stream, e.g. [DEBUG] message from destructors
+      while (true) {
+        O2_SIGNPOST_ID_GENERATE(sid, workflow_importer);
+        s.getline(buf, 1024, '\n');
+        if (s.eof()) {
+          break;
+        }
+        O2_SIGNPOST_EVENT_EMIT(workflow_importer, sid, "import", "Following leftover line found in input stream after parsing workflow: %{public}s", buf);
+      }
+    }
   }
   return true;
 }
