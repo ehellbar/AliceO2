@@ -186,12 +186,12 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   template <class D, class E, class F, class G, class H, class I, class J, class K>
   void processInputs(o2::framework::ProcessingContext&, D&, E&, F&, G&, bool&, H&, I&, J&, K&);
 
-  int32_t runMain(o2::framework::ProcessingContext* pc, GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, int32_t threadIndex = 0, GPUInterfaceInputUpdate* inputUpdateCallback = nullptr);
+  int32_t runMain(o2::framework::ProcessingContext* pc, o2::framework::ServiceRegistryRef* services, GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, int32_t threadIndex = 0, GPUInterfaceInputUpdate* inputUpdateCallback = nullptr);
   int32_t runITSTracking(o2::framework::ProcessingContext& pc);
 
   int32_t handlePipeline(o2::framework::ProcessingContext& pc, GPUTrackingInOutPointers& ptrs, gpurecoworkflow_internals::GPURecoWorkflowSpec_TPCZSBuffers& tpcZSmeta, o2::gpu::GPUTrackingInOutZS& tpcZS, std::unique_ptr<gpurecoworkflow_internals::GPURecoWorkflow_QueueObject>& context);
   void RunReceiveThread();
-  void RunWorkerThread(int32_t id);
+  void RunWorkerThread(int32_t id, o2::framework::ServiceRegistryRef* services);
   void ExitPipeline();
   void handlePipelineEndOfStream(o2::framework::EndOfStreamContext& ec);
   void handlePipelineStop();

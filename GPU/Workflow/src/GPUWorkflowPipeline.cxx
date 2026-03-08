@@ -70,12 +70,12 @@ void GPURecoWorkflowSpec::initPipeline(o2::framework::InitContext& ic)
     };
     mPipeline->receiveThread = std::thread([this]() { RunReceiveThread(); });
     for (uint32_t i = 0; i < mPipeline->workers.size(); i++) {
-      mPipeline->workers[i].thread = std::thread([this, i]() { RunWorkerThread(i); });
+      mPipeline->workers[i].thread = std::thread([this, i]() { RunWorkerThread(i, &ic.services()); });
     }
   }
 }
 
-void GPURecoWorkflowSpec::RunWorkerThread(int32_t id)
+void GPURecoWorkflowSpec::RunWorkerThread(int32_t id, o2::framework::ServiceRegistryRef* services)
 {
   LOG(debug) << "Running pipeline worker " << id;
   auto& workerContext = mPipeline->workers[id];
@@ -91,7 +91,7 @@ void GPURecoWorkflowSpec::RunWorkerThread(int32_t id)
       workerContext.inputQueue.pop();
     }
     context->jobThreadIndex = id;
-    context->jobReturnValue = runMain(nullptr, context->jobPtrs, context->jobOutputRegions, id, context->jobInputUpdateCallback.get());
+    context->jobReturnValue = runMain(nullptr, services, context->jobPtrs, context->jobOutputRegions, id, context->jobInputUpdateCallback.get());
     {
       std::lock_guard lk(context->jobFinishedMutex);
       context->jobFinished = true;

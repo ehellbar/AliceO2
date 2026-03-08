@@ -508,7 +508,7 @@ void GPURecoWorkflowSpec::processInputs(ProcessingContext& pc, D& tpcZSmeta, E& 
   }
 }
 
-int32_t GPURecoWorkflowSpec::runMain(o2::framework::ProcessingContext* pc, GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, int32_t threadIndex, GPUInterfaceInputUpdate* inputUpdateCallback)
+int32_t GPURecoWorkflowSpec::runMain(o2::framework::ProcessingContext* pc, o2::framework::ServiceRegistryRef* services, GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, int32_t threadIndex, GPUInterfaceInputUpdate* inputUpdateCallback)
 {
   int32_t retVal = 0;
   if (mConfParam->dump < 2) {
@@ -520,8 +520,8 @@ int32_t GPURecoWorkflowSpec::runMain(o2::framework::ProcessingContext* pc, GPUTr
     static bool first = true;
     if (first) {
       first = false;
-      if (pc->services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) { // TPC ConfigurableCarams are somewhat special, need to construct by hand
-        o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(pc->services().get<const o2::framework::DeviceSpec>().name, "rec_tpc"), "GPU_rec_tpc,GPU_rec,GPU_proc_param,GPU_proc,GPU_global,trackTuneParams");
+      if (services->get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) { // TPC ConfigurableCarams are somewhat special, need to construct by hand
+        o2::conf::ConfigurableParam::write(o2::base::NameConf::getConfigOutputFileName(services->get<const o2::framework::DeviceSpec>().name, "rec_tpc"), "GPU_rec_tpc,GPU_rec,GPU_proc_param,GPU_proc,GPU_global,trackTuneParams");
       }
     }
   }
@@ -843,7 +843,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
       mNextThreadIndex = (mNextThreadIndex + 1) % 2;
     }
 
-    retVal = runMain(&pc, &ptrs, &outputRegions, threadIndex);
+    retVal = runMain(&pc, nullptr, &ptrs, &outputRegions, threadIndex);
   }
   if (retVal != 0) {
     debugTFDump = true;
