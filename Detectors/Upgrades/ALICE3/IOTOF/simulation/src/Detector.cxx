@@ -40,7 +40,8 @@ Detector::Detector(bool active)
   auto& iotofPars = IOTOFBaseParam::Instance();
   configLayers(iotofPars.enableInnerTOF, iotofPars.enableOuterTOF,
                iotofPars.enableForwardTOF, iotofPars.enableBackwardTOF,
-               iotofPars.detectorPattern);
+               iotofPars.detectorPattern,
+               iotofPars.segmentedInnerTOF, iotofPars.segmentedOuterTOF, iotofPars.x2x0);
 }
 
 Detector::~Detector()
@@ -56,18 +57,20 @@ void Detector::ConstructGeometry()
   createGeometry();
 }
 
-void Detector::configLayers(bool itof, bool otof, bool ftof, bool btof, std::string pattern)
+void Detector::configLayers(bool itof, bool otof, bool ftof, bool btof, std::string pattern, bool itofSegmented, bool otofSegmented,
+                            const float x2x0)
 {
 
-  float radiusInnerTof = 19.f;
-  float radiusOuterTof = 85.f;
-  float lengthInnerTof = 124.f;
+  const float radiusInnerTof = 19.f;
+  const float radiusOuterTof = 85.f;
+  const float lengthInnerTof = 124.f;
   float lengthOuterTof = 680.f;
   std::pair<float, float> radiusRangeDiskTof = {15.f, 100.f};
   float zForwardTof = 370.f;
+  LOG(info) << "Configuring IOTOF layers with '" << pattern << "' pattern";
   if (pattern == "") {
+    LOG(info) << "Default pattern";
   } else if (pattern == "v3b") {
-    LOG(info) << "Configuring IOTOF layers with v3b pattern";
     ftof = false;
     btof = false;
   } else if (pattern == "v3b1a") {
@@ -93,17 +96,27 @@ void Detector::configLayers(bool itof, bool otof, bool ftof, bool btof, std::str
   } else {
     LOG(fatal) << "IOTOF layer pattern " << pattern << " not recognized, exiting";
   }
-  if (itof) {
-    mITOFLayer = ITOFLayer(std::string{GeometryTGeo::getITOFLayerPattern()}, radiusInnerTof, 0.f, lengthInnerTof, 0.f, 0.02f, true); // iTOF
+  if (itof) { // iTOF
+    mITOFLayer = itofSegmented ? ITOFLayer(std::string{GeometryTGeo::getITOFLayerPattern()},
+                                           radiusInnerTof, 0.f, lengthInnerTof, 0.f, x2x0, ITOFLayer::kBarrelSegmented,
+                                           24, 5.42, 10.0, 10)
+                               : ITOFLayer(std::string{GeometryTGeo::getITOFLayerPattern()},
+                                           radiusInnerTof, 0.f, lengthInnerTof, 0.f, x2x0, ITOFLayer::kBarrel);
   }
-  if (otof) {
-    mOTOFLayer = OTOFLayer(std::string{GeometryTGeo::getOTOFLayerPattern()}, radiusOuterTof, 0.f, lengthOuterTof, 0.f, 0.02f, true); // oTOF
+  if (otof) { // oTOF
+    mOTOFLayer = otofSegmented ? OTOFLayer(std::string{GeometryTGeo::getOTOFLayerPattern()},
+                                           radiusOuterTof, 0.f, lengthOuterTof, 0.f, x2x0, OTOFLayer::kBarrelSegmented,
+                                           62, 9.74, 5.0, 54)
+                               : OTOFLayer(std::string{GeometryTGeo::getOTOFLayerPattern()},
+                                           radiusOuterTof, 0.f, lengthOuterTof, 0.f, x2x0, OTOFLayer::kBarrel);
   }
   if (ftof) {
-    mFTOFLayer = FTOFLayer(std::string{GeometryTGeo::getFTOFLayerPattern()}, radiusRangeDiskTof.first, radiusRangeDiskTof.second, 0.f, zForwardTof, 0.02f, false); // fTOF
+    mFTOFLayer = FTOFLayer(std::string{GeometryTGeo::getFTOFLayerPattern()},
+                           radiusRangeDiskTof.first, radiusRangeDiskTof.second, 0.f, zForwardTof, x2x0, FTOFLayer::kDisk); // fTOF
   }
   if (btof) {
-    mBTOFLayer = BTOFLayer(std::string{GeometryTGeo::getBTOFLayerPattern()}, radiusRangeDiskTof.first, radiusRangeDiskTof.second, 0.f, -zForwardTof, 0.02f, false); // bTOF
+    mBTOFLayer = BTOFLayer(std::string{GeometryTGeo::getBTOFLayerPattern()},
+                           radiusRangeDiskTof.first, radiusRangeDiskTof.second, 0.f, -zForwardTof, x2x0, BTOFLayer::kDisk); // bTOF
   }
 }
 
@@ -186,14 +199,18 @@ void Detector::defineSensitiveVolumes()
   // The names of the IOTOF sensitive volumes have the format: IOTOFLayer(0...mLayers.size()-1)
   auto& iotofPars = IOTOFBaseParam::Instance();
   if (iotofPars.enableInnerTOF) {
-    v = geoManager->GetVolume(GeometryTGeo::getITOFSensorPattern());
-    LOGP(info, "Adding IOTOF Sensitive Volume {}", v->GetName());
-    AddSensitiveVolume(v);
+    for (const std::string& itofSensor : ITOFLayer::mRegister) {
+      v = geoManager->GetVolume(itofSensor.c_str());
+      LOGP(info, "Adding IOTOF Sensitive Volume {}", v->GetName());
+      AddSensitiveVolume(v);
+    }
   }
   if (iotofPars.enableOuterTOF) {
-    v = geoManager->GetVolume(GeometryTGeo::getOTOFSensorPattern());
-    LOGP(info, "Adding IOTOF Sensitive Volume {}", v->GetName());
-    AddSensitiveVolume(v);
+    for (const std::string& otofSensor : OTOFLayer::mRegister) {
+      v = geoManager->GetVolume(otofSensor.c_str());
+      LOGP(info, "Adding IOTOF Sensitive Volume {}", v->GetName());
+      AddSensitiveVolume(v);
+    }
   }
   if (iotofPars.enableForwardTOF) {
     v = geoManager->GetVolume(GeometryTGeo::getFTOFSensorPattern());

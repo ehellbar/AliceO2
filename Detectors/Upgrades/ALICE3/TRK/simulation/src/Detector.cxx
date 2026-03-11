@@ -146,10 +146,10 @@ void Detector::buildTRKMiddleOuterLayers()
   mLayers[3].setLayout(trkPars.layoutML);
 
   // Outer tracker
-  mLayers[4].setLayout(trkPars.layoutOL);
-  mLayers[5].setLayout(trkPars.layoutOL);
-  mLayers[6].setLayout(trkPars.layoutOL);
-  mLayers[7].setLayout(trkPars.layoutOL);
+  mLayers[4].setLayout(trkPars.layoutOT);
+  mLayers[5].setLayout(trkPars.layoutOT);
+  mLayers[6].setLayout(trkPars.layoutOT);
+  mLayers[7].setLayout(trkPars.layoutOT);
 }
 
 void Detector::configFromFile(std::string fileName)
@@ -274,6 +274,10 @@ void Detector::createGeometry()
     case kIRISFullCyl:
       LOG(info) << "Building VD with IRIS fully cylindrical layout";
       o2::trk::createIRISGeometryFullCyl(vTRK);
+      break;
+    case kIRISFullCyl3InclinedWalls:
+      LOG(info) << "Building VD with IRIS fully cylindrical layout with 3 inclined walls";
+      o2::trk::createIRISGeometry3InclinedWalls(vTRK);
       break;
     case kIRIS5:
       LOG(info) << "Building VD with IRIS5 layout";
