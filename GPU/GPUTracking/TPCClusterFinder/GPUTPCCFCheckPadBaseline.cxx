@@ -43,7 +43,7 @@ GPUd() void GPUTPCCFCheckPadBaseline::Thread<0>(int32_t nBlocks, int32_t nThread
 GPUd() void GPUTPCCFCheckPadBaseline::CheckBaselineGPU(int32_t nBlocks, int32_t nThreads, int32_t iBlock, int32_t iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
 #ifdef GPUCA_GPUCODE
-  if (iBlock >= GPUCA_NROWS) {
+  if (iBlock >= (int32_t)GPUTPCGeometry::NROWS) {
     return;
   }
 
@@ -164,7 +164,7 @@ GPUd() CfChargePos GPUTPCCFCheckPadBaseline::padToCfChargePos(int32_t& pad, cons
   constexpr GPUTPCGeometry geo;
 
   int32_t padOffset = 0;
-  for (Row r = 0; r < GPUCA_NROWS; r++) {
+  for (Row r = 0; r < GPUTPCGeometry::NROWS; r++) {
     int32_t npads = geo.NPads(r);
     int32_t padInRow = pad - padOffset;
     if (0 <= padInRow && padInRow < npads) {
