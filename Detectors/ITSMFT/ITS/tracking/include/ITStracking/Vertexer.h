@@ -35,11 +35,11 @@
 namespace o2::its
 {
 
-template <int nLayers>
+template <int NLayers>
 class Vertexer
 {
-  using TimeFrameN = TimeFrame<nLayers>;
-  using VertexerTraitsN = VertexerTraits<nLayers>;
+  using TimeFrameN = TimeFrame<NLayers>;
+  using VertexerTraitsN = VertexerTraits<NLayers>;
   using LogFunc = std::function<void(const std::string& s)>;
 
  public:
@@ -53,9 +53,6 @@ class Vertexer
   void setParameters(const std::vector<VertexingParameters>& vertParams) { mVertParams = vertParams; }
   const auto& getParameters() const noexcept { return mVertParams; }
   void setMemoryPool(std::shared_ptr<BoundedMemoryResource> pool) { mMemoryPool = pool; }
-
-  std::vector<Vertex> exportVertices();
-  VertexerTraitsN* getTraits() const { return mTraits; };
 
   float clustersToVertices(LogFunc = [](const std::string& s) { std::cout << s << '\n'; });
   void filterMCTracklets();
@@ -86,13 +83,15 @@ class Vertexer
   template <typename... T>
   void initialiseTimeFrame(T&&... args);
 
+  void sortVertices();
+
   // Utils
   template <typename... T>
   float evaluateTask(void (Vertexer::*task)(T...), std::string_view taskName, int iteration, LogFunc& logger, T&&... args);
 
   void printEpilog(LogFunc& logger,
                    const unsigned int trackletN01, const unsigned int trackletN12,
-                   const unsigned selectedN, const unsigned int vertexN, const float initT,
+                   const unsigned selectedN, const unsigned int vertexN, const unsigned int totalVertexN,
                    const float trackletT, const float selecT, const float vertexT);
 
   void setNThreads(int n, std::shared_ptr<tbb::task_arena>& arena) { mTraits->setNThreads(n, arena); }
@@ -118,9 +117,9 @@ class Vertexer
   static constexpr std::array<const char*, NStates> StateNames{"Initialisation", "Tracklet finding", "Tracklet validation", "Vertex finding", "Truth seeding"};
 };
 
-template <int nLayers>
+template <int NLayers>
 template <typename... T>
-float Vertexer<nLayers>::evaluateTask(void (Vertexer<nLayers>::*task)(T...), std::string_view taskName, int iteration, LogFunc& logger, T&&... args)
+float Vertexer<NLayers>::evaluateTask(void (Vertexer<NLayers>::*task)(T...), std::string_view taskName, int iteration, LogFunc& logger, T&&... args)
 {
   float diff{0.f};
 
