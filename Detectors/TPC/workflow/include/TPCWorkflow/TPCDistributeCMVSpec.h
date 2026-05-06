@@ -156,8 +156,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
       LOGP(detail, "All CRUs for current TF {} already received. Skipping this TF", tf);
       return;
     }
-`
-    const unsigned int currentOutLane = getOutLane(tf);
+    ` const unsigned int currentOutLane = getOutLane(tf);
     const unsigned int relTF = (tf - mTFStart[currentBuffer]) / mNTFsBuffer;
     LOGP(debug, "Current TF: {}, relative TF: {}, current buffer: {}, current output lane: {}, mTFStart: {}", tf, relTF, currentBuffer, currentOutLane, mTFStart[currentBuffer]);
 
