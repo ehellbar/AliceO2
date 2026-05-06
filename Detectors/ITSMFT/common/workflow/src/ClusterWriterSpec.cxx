@@ -37,10 +37,11 @@ using CompClusType = std::vector<o2::itsmft::CompClusterExt>;
 using PatternsType = std::vector<unsigned char>;
 using ROFrameRType = std::vector<o2::itsmft::ROFRecord>;
 using LabelsType = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+using ROFRecLblT = std::vector<o2::itsmft::MC2ROFRecord>;
 using namespace o2::header;
 
 template <int N>
-DataProcessorSpec getClusterWriterSpec(bool useMC, bool doStag)
+DataProcessorSpec getClusterWriterSpec(bool useMC, bool doStag, bool clusterROFOnly)
 {
   static constexpr o2::header::DataOrigin Origin{N == o2::detectors::DetID::ITS ? o2::header::gDataOriginITS : o2::header::gDataOriginMFT};
   const int nLayers = (doStag) ? DPLAlpideParam<N>::getNLayers() : 1;
@@ -81,6 +82,18 @@ DataProcessorSpec getClusterWriterSpec(bool useMC, bool doStag)
     vecInpSpecLbl.emplace_back(getName("labels", iLayer), Origin, "CLUSTERSMCTR", iLayer);
   }
 
+  if (clusterROFOnly) {
+    return MakeRootTreeWriterSpec(std::format("{}-cluster-writer", detNameLC).c_str(),
+                                  (o2::detectors::DetID::ITS == N) ? "o2clus_its.root" : "mftclusters.root",
+                                  MakeRootTreeWriterSpec::TreeAttributes{.name = "o2sim", .title = std::format("Tree with {} cluster ROFs only", detName)},
+                                  BranchDefinition<ROFrameRType>{vecInpSpecROF,
+                                                                 (detName + "ClustersROF").c_str(), "cluster-rof-branch",
+                                                                 nLayers,
+                                                                 logger,
+                                                                 getIndex,
+                                                                 getName})();
+  }
+
   return MakeRootTreeWriterSpec(std::format("{}-cluster-writer", detNameLC).c_str(),
                                 (o2::detectors::DetID::ITS == N) ? "o2clus_its.root" : "mftclusters.root",
                                 MakeRootTreeWriterSpec::TreeAttributes{.name = "o2sim", .title = std::format("Tree with {} clusters", detName)},
@@ -105,10 +118,15 @@ DataProcessorSpec getClusterWriterSpec(bool useMC, bool doStag)
                                                              (detName + "ClusterMCTruth").c_str(), "cluster-label-branch",
                                                              (useMC ? nLayers : 0),
                                                              getIndex,
+                                                             getName},
+                                BranchDefinition<ROFRecLblT>{InputSpec{"MC2ROframes", ConcreteDataTypeMatcher{Origin, "CLUSTERSMC2ROF"}},
+                                                             (detName + "ClustersMC2ROF").c_str(), "cluster-mc2rof-branch",
+                                                             (useMC ? nLayers : 0),
+                                                             getIndex,
                                                              getName})();
 }
 
-framework::DataProcessorSpec getITSClusterWriterSpec(bool useMC, bool doStag) { return getClusterWriterSpec<o2::detectors::DetID::ITS>(useMC, doStag); }
-framework::DataProcessorSpec getMFTClusterWriterSpec(bool useMC, bool doStag) { return getClusterWriterSpec<o2::detectors::DetID::MFT>(useMC, doStag); }
+framework::DataProcessorSpec getITSClusterWriterSpec(bool useMC, bool doStag, bool clusterROFOnly) { return getClusterWriterSpec<o2::detectors::DetID::ITS>(useMC, doStag, clusterROFOnly); }
+framework::DataProcessorSpec getMFTClusterWriterSpec(bool useMC, bool doStag, bool clusterROFOnly) { return getClusterWriterSpec<o2::detectors::DetID::MFT>(useMC, doStag, clusterROFOnly); }
 
 } // namespace o2::itsmft

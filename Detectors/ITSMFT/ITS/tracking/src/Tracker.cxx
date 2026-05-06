@@ -34,11 +34,11 @@ Tracker<NLayers>::Tracker(TrackerTraits<NLayers>* traits) : mTraits(traits)
 }
 
 template <int NLayers>
-void Tracker<NLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& error)
+float Tracker<NLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& error)
 {
   LogFunc evalLog = [](const std::string&) {};
 
-  double total{0};
+  float total{0};
   mTraits->updateTrackingParameters(mTrkParams);
 
   int maxNvertices{-1};
@@ -49,7 +49,7 @@ void Tracker<NLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& er
   int iteration{0}, iVertex{0};
   auto handleException = [&](const auto& err) {
     LOGP(error, "Too much memory in {} in iteration {} iVtx={}: {:.2f} GB. Current limit is {:.2f} GB, check the detector status and/or the selections.",
-         StateNames[mCurState], iteration, iVertex,
+         StateNames[mCurStep], iteration, iVertex,
          (double)mTimeFrame->getArtefactsMemory() / GB,
          (double)mTrkParams[iteration].MaxMemory / GB);
     if (typeid(err) != typeid(std::bad_alloc)) { // only print if the exceptions is different from what is expected
@@ -71,44 +71,39 @@ void Tracker<NLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& er
       if (iteration == 3 && mTrkParams[0].DoUPCIteration) {
         mTimeFrame->useUPCMask();
       }
-      float timeTracklets{0.}, timeCells{0.}, timeNeighbours{0.}, timeRoads{0.};
+      float timeFrame{0.}, timeTracklets{0.}, timeCells{0.}, timeNeighbours{0.}, timeRoads{0.};
       size_t nTracklets{0}, nCells{0}, nNeighbours{0};
       int nTracks{-static_cast<int>(mTimeFrame->getNumberOfTracks())};
       iVertex = std::min(maxNvertices, 0);
       logger(std::format("==== ITS {} Tracking iteration {} summary ====", mTraits->getName(), iteration));
-      total += evaluateTask(&Tracker::initialiseTimeFrame, StateNames[mCurState = TFInit], iteration, logger, iteration);
+      total += timeFrame = evaluateTask(&Tracker::initialiseTimeFrame, StateNames[mCurStep = TFInit], iteration, evalLog, iteration);
+      logger(std::format(" - TimeFrame initialisation completed in {:.2f} ms", timeFrame));
       do {
-        timeTracklets += evaluateTask(&Tracker::computeTracklets, StateNames[mCurState = Trackleting], iteration, evalLog, iteration, iVertex);
+        timeTracklets += evaluateTask(&Tracker::computeTracklets, StateNames[mCurStep = Trackleting], iteration, evalLog, iteration, iVertex);
         nTracklets += mTraits->getTFNumberOfTracklets();
-        timeCells += evaluateTask(&Tracker::computeCells, StateNames[mCurState = Celling], iteration, evalLog, iteration);
+        timeCells += evaluateTask(&Tracker::computeCells, StateNames[mCurStep = Celling], iteration, evalLog, iteration);
         nCells += mTraits->getTFNumberOfCells();
-        timeNeighbours += evaluateTask(&Tracker::findCellsNeighbours, StateNames[mCurState = Neighbouring], iteration, evalLog, iteration);
+        timeNeighbours += evaluateTask(&Tracker::findCellsNeighbours, StateNames[mCurStep = Neighbouring], iteration, evalLog, iteration);
         nNeighbours += mTimeFrame->getNumberOfNeighbours();
-        timeRoads += evaluateTask(&Tracker::findRoads, StateNames[mCurState = Roading], iteration, evalLog, iteration);
+        timeRoads += evaluateTask(&Tracker::findRoads, StateNames[mCurStep = Roading], iteration, evalLog, iteration);
       } while (++iVertex < maxNvertices);
       logger(std::format(" - Tracklet finding: {} tracklets found in {:.2f} ms", nTracklets, timeTracklets));
       logger(std::format(" - Cell finding: {} cells found in {:.2f} ms", nCells, timeCells));
       logger(std::format(" - Neighbours finding: {} neighbours found in {:.2f} ms", nNeighbours, timeNeighbours));
       logger(std::format(" - Track finding: {} tracks found in {:.2f} ms", nTracks + mTimeFrame->getNumberOfTracks(), timeRoads));
       total += timeTracklets + timeCells + timeNeighbours + timeRoads;
-      if (mTrkParams[iteration].PrintMemory) {
-        mMemoryPool->print();
-      }
-    }
-    if constexpr (constants::DoTimeBenchmarks) {
-      logger(std::format("=== TimeSlice {} processing completed in: {:.2f} ms using {} thread(s) ===", mTimeSlice, total, mTraits->getNThreads()));
     }
   } catch (const BoundedMemoryResource::MemoryLimitExceeded& err) {
     handleException(err);
-    return;
+    return -1.f;
   } catch (const std::bad_alloc& err) {
     handleException(err);
-    return;
+    return -1.f;
   } catch (const std::exception& err) {
     error(std::format("Uncaught exception, all bets are off... {}", err.what()));
     // clear tracks explicitly since if not fatalising on exception this may contain partial output
     mTimeFrame->getTracks().clear();
-    return;
+    return -1.f;
   }
 
   if (mTimeFrame->hasMCinformation()) {
@@ -120,10 +115,7 @@ void Tracker<NLayers>::clustersToTracks(const LogFunc& logger, const LogFunc& er
   ++mTimeFrameCounter;
   mTotalTime += total;
 
-  if (mTrkParams[0].PrintMemory) {
-    mTimeFrame->printArtefactsMemory();
-    mMemoryPool->print();
-  }
+  return total;
 }
 
 template <int NLayers>
@@ -238,11 +230,32 @@ void Tracker<NLayers>::adoptTimeFrame(TimeFrame<NLayers>& tf)
 }
 
 template <int NLayers>
+void Tracker<NLayers>::addTimingStatCurStep(int iteration, double timeMs)
+{
+  if (iteration < 0) {
+    return;
+  }
+  if (mTimingStats.size() < (iteration + 1)) {
+    mTimingStats.resize(iteration + 1);
+  }
+  mTimingStats[iteration][mCurStep].add(timeMs);
+}
+
+template <int NLayers>
 void Tracker<NLayers>::printSummary() const
 {
   auto avgTF = mTotalTime * 1.e-3 / ((mTimeFrameCounter > 0) ? (double)mTimeFrameCounter : -1.0);
   auto avgTFwithDropped = mTotalTime * 1.e-3 / (((mTimeFrameCounter + mNumberOfDroppedTFs) > 0) ? (double)(mTimeFrameCounter + mNumberOfDroppedTFs) : -1.0);
   LOGP(info, "Tracker summary: Processed {} TFs (dropped {}) in TOT={:.2f} s, AVG/TF={:.2f} ({:.2f}) s", mTimeFrameCounter, mNumberOfDroppedTFs, mTotalTime * 1.e-3, avgTF, avgTFwithDropped);
+  for (size_t iteration = 0; iteration < mTimingStats.size(); ++iteration) {
+    for (size_t state = 0; state < NSteps; ++state) {
+      const auto& stats = mTimingStats[iteration][state];
+      if (!stats.calls) {
+        continue;
+      }
+      LOGP(info, " - iter {} {}: calls={} total={:.2f} ms avg={:.2f} ms", iteration, StateNames[state], stats.calls, stats.totalTimeMs, stats.averageTimeMs());
+    }
+  }
 }
 
 template class Tracker<7>;

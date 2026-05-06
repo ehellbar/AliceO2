@@ -18,7 +18,6 @@
 
 #include <array>
 #include <chrono>
-#include <cmath>
 #include <fstream>
 #include <iomanip>
 #include <iosfwd>
@@ -26,10 +25,12 @@
 #include <string_view>
 #include <utility>
 #include <sstream>
+#include <vector>
 
 #include <oneapi/tbb/task_arena.h>
 
 #include "ITStracking/Configuration.h"
+#include "ITStracking/Definitions.h"
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/TrackerTraits.h"
 #include "ITStracking/BoundedAllocator.h"
@@ -54,7 +55,7 @@ class Tracker
 
   void adoptTimeFrame(TimeFrame<NLayers>& tf);
 
-  void clustersToTracks(
+  float clustersToTracks(
     const LogFunc& = [](const std::string& s) { std::cout << s << '\n'; },
     const LogFunc& = [](const std::string& s) { std::cerr << s << '\n'; });
 
@@ -78,7 +79,7 @@ class Tracker
   void sortTracks();
 
   template <typename... T, typename... F>
-  float evaluateTask(void (Tracker::*task)(T...), std::string_view taskName, int iteration, LogFunc logger, F&&... args);
+  float evaluateTask(void (Tracker::*task)(T...), std::string_view taskName, int iteration, const LogFunc& logger, F&&... args);
 
   TrackerTraits<NLayers>* mTraits = nullptr; /// Observer pointer, not owned by this class
   TimeFrame<NLayers>* mTimeFrame = nullptr;  /// Observer pointer, not owned by this class
@@ -92,21 +93,23 @@ class Tracker
   double mTotalTime{0};
   std::shared_ptr<BoundedMemoryResource> mMemoryPool;
 
-  enum State {
+  enum Steps {
     TFInit = 0,
     Trackleting,
     Celling,
     Neighbouring,
     Roading,
-    NStates,
+    NSteps,
   };
-  State mCurState{TFInit};
-  static constexpr std::array<const char*, NStates> StateNames{"TimeFrame initialisation", "Tracklet finding", "Cell finding", "Neighbour finding", "Road finding"};
+  Steps mCurStep{TFInit};
+  static constexpr std::array<const char*, NSteps> StateNames{"TimeFrame initialisation", "Tracklet finding", "Cell finding", "Neighbour finding", "Road finding"};
+  std::vector<std::array<TimingStats, NSteps>> mTimingStats;
+  void addTimingStatCurStep(int iteration, double timeMs);
 };
 
 template <int NLayers>
 template <typename... T, typename... F>
-float Tracker<NLayers>::evaluateTask(void (Tracker<NLayers>::*task)(T...), std::string_view taskName, int iteration, LogFunc logger, F&&... args)
+float Tracker<NLayers>::evaluateTask(void (Tracker<NLayers>::*task)(T...), std::string_view taskName, int iteration, const LogFunc& logger, F&&... args)
 {
   float diff{0.f};
 
@@ -126,7 +129,7 @@ float Tracker<NLayers>::evaluateTask(void (Tracker<NLayers>::*task)(T...), std::
     }
     logger(sstream.str());
 
-    if (mTrkParams[0].SaveTimeBenchmarks) {
+    if (mTrkParams[iteration].SaveTimeBenchmarks) {
       std::string taskNameStr(taskName);
       std::transform(taskNameStr.begin(), taskNameStr.end(), taskNameStr.begin(),
                      [](unsigned char c) { return std::tolower(c); });
@@ -134,10 +137,15 @@ float Tracker<NLayers>::evaluateTask(void (Tracker<NLayers>::*task)(T...), std::
       if (std::ofstream file{"its_time_benchmarks.txt", std::ios::app}) {
         file << "trk:" << iteration << '\t' << taskNameStr << '\t' << diff << '\n';
       }
+      addTimingStatCurStep(iteration, diff);
     }
 
   } else {
     (this->*task)(std::forward<F>(args)...);
+  }
+
+  if (mTrkParams[iteration].PrintMemory) {
+    LOGP(info, "iter:{}:{}: {}", iteration, StateNames[mCurStep], mMemoryPool->asString());
   }
 
   return diff;
