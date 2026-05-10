@@ -392,6 +392,15 @@ void DataAllocator::adoptFromCache(const Output& spec, CacheId id, header::Seria
   context.add<MessageContext::TrivialObject>(std::move(headerMessage), std::move(payloadMessage), routeIndex);
 }
 
+void DataAllocator::pruneFromCache(CacheId id)
+{
+  // Drop the cached shallow-clone for @a id from the message cache. If no other
+  // outstanding reference is held the underlying SHM region will be released.
+  // Erasing an unknown id is a no-op (std::unordered_map::erase semantics).
+  auto& context = mRegistry.get<MessageContext>();
+  context.pruneFromCache(id.value);
+}
+
 void DataAllocator::cookDeadBeef(const Output& spec)
 {
   auto& proxy = mRegistry.get<FairMQDeviceProxy>();
