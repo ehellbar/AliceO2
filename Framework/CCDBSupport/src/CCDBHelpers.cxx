@@ -477,7 +477,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
               }
               helper->mapURL2DPLCache[path] = cacheId;
               O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "fetchFromCCDB", "Caching %{public}s for %{public}s (DPL id %" PRIu64 ")", path.data(), headers["ETag"].data(), cacheId.value);
-            } else if (v.size()) { // but should be overridden by fresh object
+            } else if (v.size()) {                              // but should be overridden by fresh object
               helper->mapURL2UUID[path].etag = headers["ETag"]; // update uuid
               helper->mapURL2UUID[path].cacheMiss++;
               helper->mapURL2UUID[path].size = v.size();
