@@ -525,6 +525,15 @@ class DataAllocator
   /// Adopt an already cached message, using an already provided CacheId.
   void adoptFromCache(Output const& spec, CacheId id, header::SerializationMethod method = header::gSerializationMethodNone);
 
+  /// Prune a previously cached message identified by @a id from the message cache.
+  /// The cached shallow-clone is dropped; if no other in-flight reference exists
+  /// the underlying shared-memory region will be released by FairMQ. Calling this
+  /// with an unknown id is a no-op.
+  /// This is intended to be used when an entry in a user-managed map of CacheIds
+  /// is about to be overwritten by a fresh adoptContainer() call (see e.g. the
+  /// CCDB cache replacement in CCDBHelpers).
+  void pruneFromCache(CacheId id);
+
   /// snapshot object and route to output specified by OutputRef
   /// Framework makes a (serialized) copy of object content.
   ///
