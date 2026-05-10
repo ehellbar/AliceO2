@@ -264,7 +264,11 @@ void DataAllocator::adopt(const Output& spec, LifetimeHolder<FragmentToBatch>& f
     // get rid of the intermediate tree 2 table object, saving memory.
     auto batch = source.finalize();
     if (!batch) {
-      throw std::runtime_error("FragmentToBatch::finalize() returned null RecordBatch");
+      // Do not throw here: this callback runs from ~LifetimeHolder which may
+      // execute during stack unwinding (e.g. if fill() failed). Throwing during
+      // unwinding calls std::terminate.
+      LOG(error) << "FragmentToBatch::finalize() returned null RecordBatch, skipping serialization";
+      return;
     }
     auto mock = std::make_shared<arrow::io::MockOutputStream>();
     int64_t expectedSize = 0;
@@ -386,6 +390,15 @@ void DataAllocator::adoptFromCache(const Output& spec, CacheId id, header::Seria
   );
 
   context.add<MessageContext::TrivialObject>(std::move(headerMessage), std::move(payloadMessage), routeIndex);
+}
+
+void DataAllocator::pruneFromCache(CacheId id)
+{
+  // Drop the cached shallow-clone for @a id from the message cache. If no other
+  // outstanding reference is held the underlying SHM region will be released.
+  // Erasing an unknown id is a no-op (std::unordered_map::erase semantics).
+  auto& context = mRegistry.get<MessageContext>();
+  context.pruneFromCache(id.value);
 }
 
 void DataAllocator::cookDeadBeef(const Output& spec)

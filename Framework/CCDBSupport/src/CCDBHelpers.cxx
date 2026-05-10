@@ -347,13 +347,26 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
         helper->totalFetchedBytes += v.size();
         helper->totalRequestedBytes += v.size();
         api.appendFlatHeader(v, headers);
+        // IMPORTANT: adopt the fresh SHM message BEFORE pruning the previously
+        // cached one. The DPL CacheId is the SHM payload pointer (see
+        // MessageContext::addToCache and ObjectCache::Id::fromRef). If we
+        // pruned first, the SHM allocator could immediately recycle the just-
+        // freed address for the new allocation, producing a CacheId numerically
+        // equal to the previous one. The consumer-side ObjectCache then thinks
+        // the object hasn't changed, returns the stale deserialised heap
+        // pointer, and CCDB updates silently stop propagating. Allocating
+        // first guarantees the old chunk is still alive, forcing the allocator
+        // to choose a different address for the new one.
+        auto oldDPLCacheIt = helper->mapURL2DPLCache.find(path);
         auto cacheId = allocator.adoptContainer(output, std::move(v), DataAllocator::CacheStrategy::Always, header::gSerializationMethodCCDB);
+        if (oldDPLCacheIt != helper->mapURL2DPLCache.end()) {
+          allocator.pruneFromCache(oldDPLCacheIt->second);
+        }
         helper->mapURL2DPLCache[path] = cacheId;
         O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "populateCacheWith", "Caching %{public}s for %{public}s (DPL id %" PRIu64 ")", path.data(), headers["ETag"].data(), cacheId.value);
         continue;
       }
       if (v.size()) { // but should be overridden by fresh object
-        // somewhere here pruneFromCache should be called
         helper->mapURL2UUID[path].etag = headers["ETag"]; // update uuid
         helper->mapURL2UUID[path].cachePopulatedAt = timestampToUse;
         helper->mapURL2UUID[path].cacheValidUntil = headers["Cache-Valid-Until"].empty() ? 0 : std::stoul(headers["Cache-Valid-Until"]);
@@ -364,11 +377,16 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
         helper->totalFetchedBytes += v.size();
         helper->totalRequestedBytes += v.size();
         api.appendFlatHeader(v, headers);
+        // Adopt-before-prune: see comment in the etag.empty() branch above
+        // about why this ordering matters (SHM-address-as-CacheId collision
+        // would otherwise make the consumer skip the replacement).
+        auto oldDPLCacheIt = helper->mapURL2DPLCache.find(path);
         auto cacheId = allocator.adoptContainer(output, std::move(v), DataAllocator::CacheStrategy::Always, header::gSerializationMethodCCDB);
+        if (oldDPLCacheIt != helper->mapURL2DPLCache.end()) {
+          allocator.pruneFromCache(oldDPLCacheIt->second);
+        }
         helper->mapURL2DPLCache[path] = cacheId;
         O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "populateCacheWith", "Caching %{public}s for %{public}s (DPL id %" PRIu64 ")", path.data(), headers["ETag"].data(), cacheId.value);
-        // one could modify the    adoptContainer to take optional old cacheID to clean:
-        // mapURL2DPLCache[URL] = ctx.outputs().adoptContainer(output, std::move(outputBuffer), DataAllocator::CacheStrategy::Always, mapURL2DPLCache[URL]);
         continue;
       } else {
         // Only once the etag is actually used, we get the information on how long the object is valid
@@ -448,11 +466,18 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
               helper->totalRequestedBytes += v.size();
               newOrbitResetTime = getOrbitResetTime(v);
               api.appendFlatHeader(v, headers);
+              // Adopt-before-prune; see comment in populateCacheWith() about
+              // why pruning first would let the SHM allocator recycle the same
+              // address and produce a CacheId that collides with the consumer's
+              // ObjectCache id (which is also the SHM payload pointer).
+              auto oldDPLCacheIt = helper->mapURL2DPLCache.find(path);
               auto cacheId = allocator.adoptContainer(output, std::move(v), DataAllocator::CacheStrategy::Always, header::gSerializationMethodNone);
+              if (oldDPLCacheIt != helper->mapURL2DPLCache.end()) {
+                allocator.pruneFromCache(oldDPLCacheIt->second);
+              }
               helper->mapURL2DPLCache[path] = cacheId;
               O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "fetchFromCCDB", "Caching %{public}s for %{public}s (DPL id %" PRIu64 ")", path.data(), headers["ETag"].data(), cacheId.value);
             } else if (v.size()) { // but should be overridden by fresh object
-              // somewhere here pruneFromCache should be called
               helper->mapURL2UUID[path].etag = headers["ETag"]; // update uuid
               helper->mapURL2UUID[path].cacheMiss++;
               helper->mapURL2UUID[path].size = v.size();
@@ -462,11 +487,14 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
               helper->totalRequestedBytes += v.size();
               newOrbitResetTime = getOrbitResetTime(v);
               api.appendFlatHeader(v, headers);
+              // Adopt-before-prune; see analogous comment above.
+              auto oldDPLCacheIt = helper->mapURL2DPLCache.find(path);
               auto cacheId = allocator.adoptContainer(output, std::move(v), DataAllocator::CacheStrategy::Always, header::gSerializationMethodNone);
+              if (oldDPLCacheIt != helper->mapURL2DPLCache.end()) {
+                allocator.pruneFromCache(oldDPLCacheIt->second);
+              }
               helper->mapURL2DPLCache[path] = cacheId;
               O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "fetchFromCCDB", "Caching %{public}s for %{public}s (DPL id %" PRIu64 ")", path.data(), headers["ETag"].data(), cacheId.value);
-              // one could modify the adoptContainer to take optional old cacheID to clean:
-              // mapURL2DPLCache[URL] = ctx.outputs().adoptContainer(output, std::move(outputBuffer), DataAllocator::CacheStrategy::Always, mapURL2DPLCache[URL]);
             }
             // cached object is fine
           }
