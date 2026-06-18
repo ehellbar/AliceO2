@@ -65,7 +65,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"dropTFsRandom", VariantType::Int, 0, {"Drop randomly whole TFs every dropTFsRandom TFs (for all CRUs)"}},
     {"dropTFsRange", VariantType::String, "", {"Drop range of TFs"}},
     {"hbfutils-config", VariantType::String, "hbfutils", {"config file for HBFUtils (or none) to get number of orbits per TF"}},
-    {"nthreads", VariantType::Int, 1, {"Number of threads."}},
+    // {"nthreads", VariantType::Int, 1, {"Number of threads."}},
     {"iter", VariantType::Int, 0, {"Iteration for testing the workflow (.....)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -97,7 +97,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   const auto timeframes = static_cast<unsigned int>(config.options().get<int>("timeframes"));
   const auto iondrifttime = static_cast<unsigned int>(config.options().get<int>("ion-drift-time"));
   const auto nFourierCoefficients = std::clamp(static_cast<unsigned int>(config.options().get<int>("nFourierCoeff")), static_cast<unsigned int>(0), iondrifttime + 2);
-  const auto nthreads = static_cast<unsigned int>(config.options().get<int>("nthreads"));
+  // const auto nthreads = static_cast<unsigned int>(config.options().get<int>("nthreads"));
   const auto iter = static_cast<unsigned int>(config.options().get<int>("iter"));
   const auto seed = static_cast<unsigned int>(config.options().get<int>("seed"));
   const auto idcgenlanes = static_cast<unsigned int>(config.options().get<int>("idc-gen-lanes"));
@@ -149,9 +149,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     }
   }
 
-  IDCAverageGroup<IDCAverageGroupTPC>::setNThreads(nthreads);
+  // IDCAverageGroup<IDCAverageGroupTPC>::setNThreads(nthreads);
   TPCFourierTransformEPNSpec::IDCFType::setFFT(!fft);
-  TPCFourierTransformAggregatorSpec::IDCFType::setNThreads(nthreads);
+  // TPCFourierTransformAggregatorSpec::IDCFType::setNThreads(nthreads);
   TPCFourierTransformAggregatorSpec::IDCFType::setFFT(!fft);
   return workflow;
 }
