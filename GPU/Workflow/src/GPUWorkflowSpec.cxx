@@ -65,7 +65,6 @@
 #include "TPCBaseRecSim/DeadChannelMapCreator.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
-#include "Algorithm/Parser.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsTRD/RecoInputContainer.h"
 #include "TRDBase/Geometry.h"
@@ -1264,6 +1263,7 @@ Inputs GPURecoWorkflowSpec::inputs()
     metadata["nnCCDBLayerType"] = nnClusterizerSettings.nnCCDBClassificationLayerType; // FC, CNN
     metadata["nnCCDBInteractionRate"] = nnClusterizerSettings.nnCCDBInteractionRate;   // in kHz
     metadata["nnCCDBBeamType"] = nnClusterizerSettings.nnCCDBBeamType;                 // pp, pPb, PbPb
+    metadata["nnCCDBExtraMetadata"] = nnClusterizerSettings.nnCCDBExtraMetadata;       // Extra metadata for CCDB
 
     auto convert_map_to_metadata = [](const std::map<std::string, std::string>& inputMap, std::vector<o2::framework::CCDBMetadata>& outputMetadata) {
       for (const auto& [key, value] : inputMap) {
