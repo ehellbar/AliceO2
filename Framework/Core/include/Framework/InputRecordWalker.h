@@ -115,6 +115,11 @@ class InputRecordWalker
       return not operator==(rh);
     }
 
+    fair::mq::Message* getMessage() const
+    {
+      return mCurrentRange.getMessageAtIndices(mCurrent.indices());
+    }
+
    private:
     bool next(bool isInitialPart = false)
     {
