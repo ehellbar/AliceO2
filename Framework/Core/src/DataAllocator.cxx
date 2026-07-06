@@ -343,7 +343,7 @@ void DataAllocator::snapshot(const Output& spec, const char* payload, size_t pay
 }
 
 void DataAllocator::forwardPayload(const Output& spec, fair::mq::Message& inputPayload,
-                             o2::header::SerializationMethod serializationMethod)
+                                   o2::header::SerializationMethod serializationMethod)
 {
   auto& proxy = mRegistry.get<FairMQDeviceProxy>();
   auto& timingInfo = mRegistry.get<TimingInfo>();
