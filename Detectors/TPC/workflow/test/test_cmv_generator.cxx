@@ -332,11 +332,11 @@ class CMVGeneratorDevice : public o2::framework::Task
   const float mAmplitude{5.f};
   const float mNoise{1.f};
   std::mt19937 mRng{};
-  const std::string mInputFileName{};            ///< CMV ROOT file to use as template ("" = synthetic mode)
-  const long long mInputEntry{0};                ///< tree entry (TF) used as template
-  bool mUseInputFile{false};                     ///< true once a template has been loaded
-  std::vector<std::vector<float>> mBaseCMVFloat;       ///< decoded template CMV values [iCRU][timeBin] (noise>0 path), aligned to mCRUs
-  std::vector<std::vector<uint16_t>> mBaseCMVEncoded;  ///< pre-encoded template output [iCRU][timeBin] (noise==0 path), aligned to mCRUs
+  const std::string mInputFileName{};                 ///< CMV ROOT file to use as template ("" = synthetic mode)
+  const long long mInputEntry{0};                     ///< tree entry (TF) used as template
+  bool mUseInputFile{false};                          ///< true once a template has been loaded
+  std::vector<std::vector<float>> mBaseCMVFloat;      ///< decoded template CMV values [iCRU][timeBin] (noise>0 path), aligned to mCRUs
+  std::vector<std::vector<uint16_t>> mBaseCMVEncoded; ///< pre-encoded template output [iCRU][timeBin] (noise==0 path), aligned to mCRUs
   std::chrono::high_resolution_clock::time_point mTimer100TFs{};
   std::chrono::high_resolution_clock::time_point mLastTFTime{};
   bool mWriteDebug{false};
@@ -346,20 +346,20 @@ class CMVGeneratorDevice : public o2::framework::Task
 
 // ─────────────────────────────────────────────────────────────────────────────
 DataProcessorSpec generateCMVsCRU(const std::vector<uint32_t>& crus,
-                                   const std::unordered_set<uint32_t>& delayCRUs,
-                                   unsigned int maxTFs,
-                                   bool delay,
-                                   int delayTime,
-                                   int delayEveryN,
-                                   int delayTimeCRUs,
-                                   int dropTFsRandom,
-                                   const std::vector<int>& rangeTFsDrop,
-                                   float tfLength,
-                                   float amplitude,
-                                   float noise,
-                                   int seed,
-                                   const std::string& inputFile,
-                                   long long inputEntry)
+                                  const std::unordered_set<uint32_t>& delayCRUs,
+                                  unsigned int maxTFs,
+                                  bool delay,
+                                  int delayTime,
+                                  int delayEveryN,
+                                  int delayTimeCRUs,
+                                  int dropTFsRandom,
+                                  const std::vector<int>& rangeTFsDrop,
+                                  float tfLength,
+                                  float amplitude,
+                                  float noise,
+                                  int seed,
+                                  const std::string& inputFile,
+                                  long long inputEntry)
 {
   std::vector<OutputSpec> outputSpecs;
   outputSpecs.reserve(crus.size() * 2);
