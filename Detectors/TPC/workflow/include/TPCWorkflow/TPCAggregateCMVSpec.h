@@ -69,21 +69,13 @@ class TPCAggregateCMVDevice : public o2::framework::Task
       mUsePreciseTimestamp{usePreciseTimestamp},
       mNTFsBuffer{nTFsBuffer},
       mProcessedCRU(timeframes),
-      mProcessedCRUs(timeframes),
       mRawCMVs(timeframes),
       mOrbitInfo(timeframes),
       mOrbitStep(timeframes),
       mOrbitInfoSeen(timeframes, false),
-      mTFCompleted(timeframes, false),
       mCCDBRequest(req)
   {
     std::sort(mCRUs.begin(), mCRUs.end());
-    for (auto& crusMap : mProcessedCRUs) {
-      crusMap.reserve(mCRUs.size());
-      for (const auto cruID : mCRUs) {
-        crusMap.emplace(cruID, false);
-      }
-    }
     initIntervalTree();
   }
 
@@ -181,7 +173,7 @@ class TPCAggregateCMVDevice : public o2::framework::Task
       if (mTimestampStart == 0) {
         mTimestampStart = static_cast<long>(pc.services().get<o2::framework::TimingInfo>().creation);
       }
-      materializeBufferedTFs(true);
+      materializeBufferedTFs();
       sendOutput(pc.outputs());
       // Advance mTFFirst to the interval containing currTF so that after reset() clears it to -1
       // we can restore a valid value. Without this, the distribute won't resend CMVFIRSTTF (it was
@@ -226,24 +218,23 @@ class TPCAggregateCMVDevice : public o2::framework::Task
         LOGP(debug, "Received CMV data from CRU {} which is not part of this aggregate lane", cru);
         continue;
       }
-      if (mProcessedCRUs[relTF][cru]) {
-        continue;
-      }
+
+      ++mProcessedCRUs;
 
       auto cmvVec = pc.inputs().get<o2::pmr::vector<uint16_t>>(ref);
+      if (!cmvVec.empty()) {
+        ++mProcessedCRU[relTF];
+      }
+
       mRawCMVs[relTF][cru] = std::vector<uint16_t>(cmvVec.begin(), cmvVec.end());
-      mProcessedCRUs[relTF][cru] = true;
-      ++mProcessedCRU[relTF];
     }
 
-    if (mProcessedCRU[relTF] == mCRUs.size() && !mTFCompleted[relTF]) {
-      mTFCompleted[relTF] = true;
-      ++mProcessedTFs;
+    if (mProcessedCRU[relTF] == mCRUs.size()) {
       mLastSeenTF = currTF;
     }
 
-    if (mProcessedTFs == mTimeFrames) {
-      materializeBufferedTFs(false);
+    if (mProcessedCRUs == mCRUs.size() * mTimeFrames) {
+      materializeBufferedTFs();
       sendOutput(pc.outputs());
       reset();
     }
@@ -251,7 +242,7 @@ class TPCAggregateCMVDevice : public o2::framework::Task
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
-    materializeBufferedTFs(true);
+    materializeBufferedTFs();
     materializeEOSBuffer();
     sendOutput(ec.outputs());
     ec.services().get<o2::framework::ControlService>().readyToQuit(o2::framework::QuitRequest::Me);
@@ -287,14 +278,12 @@ class TPCAggregateCMVDevice : public o2::framework::Task
   long mTimestampStart{0};                                                     ///< CCDB validity start timestamp in ms (0 until set by setTimestampCCDB)
   long mIntervalFirstTF{0};                                                    ///< absolute TF counter stored in the TTree UserInfo as "firstTF"
   bool mHasIntervalFirstTF{false};                                             ///< true once mIntervalFirstTF has been set for the current interval
-  unsigned int mProcessedTFs{0};                                               ///< number of completed CMV batches in the current interval
+  unsigned int mProcessedCRUs{0};                                              ///< number of completed CRUs in the current interval, equals mCRUs.size() * mTimeFrames when complete
   std::vector<unsigned int> mProcessedCRU{};                                   ///< counter of received CRUs per relTF slot; triggers completion when it reaches mCRUs.size()
-  std::vector<std::unordered_map<unsigned int, bool>> mProcessedCRUs{};        ///< per-CRU received flag per relTF ([relTF][CRU]); prevents double-counting on retransmission
   std::vector<std::unordered_map<uint32_t, std::vector<uint16_t>>> mRawCMVs{}; ///< buffered raw CMV data per (relTF, CRU); unpacked in appendBatchToTree()
   std::vector<uint64_t> mOrbitInfo{};                                          ///< packed (firstOrbit << 32 | firstBC) per relTF, forwarded by the distribute lane
   std::vector<uint32_t> mOrbitStep{};                                          ///< per-sub-TF orbit stride per relTF; derived from actual batch timing
   std::vector<bool> mOrbitInfoSeen{};                                          ///< true once orbit/BC has been captured for each relTF slot
-  std::vector<bool> mTFCompleted{};                                            ///< true once all CRUs have been received for a given relTF slot
   std::unordered_map<uint32_t, std::vector<uint16_t>> mEOSRawCMVs{};           ///< CMV data received during the EOS sentinel path (partial batch at end of run)
   uint32_t mEOSFirstOrbit{0};                                                  ///< firstOrbit captured from the FLP's EOS partial-buffer flush
   uint16_t mEOSFirstBC{0};                                                     ///< firstBC captured from the FLP's EOS partial-buffer flush
@@ -401,21 +390,15 @@ class TPCAggregateCMVDevice : public o2::framework::Task
   }
 
   /// Unpack and fill the TTree for all relTF slots that have been buffered during run().
-  /// When includeIncomplete=false (normal interval end) only fully-received batches are filled.
-  /// When includeIncomplete=true (EOS flush) partial batches are also flushed with a warning.
-  void materializeBufferedTFs(const bool includeIncomplete)
+  void materializeBufferedTFs()
   {
     for (unsigned int relTF = 0; relTF < mTimeFrames; ++relTF) {
       if (mProcessedCRU[relTF] == 0) {
         continue;
       }
 
-      if ((mProcessedCRU[relTF] != mCRUs.size()) && !includeIncomplete) {
-        continue;
-      }
-
-      if ((mProcessedCRU[relTF] != mCRUs.size()) && includeIncomplete) {
-        LOGP(warning, "Aggregate lane {} flushing incomplete CMV batch relTF {} at EOS: received {} CRUs out of {}", mLaneId, relTF, mProcessedCRU[relTF], mCRUs.size());
+      if (mProcessedCRU[relTF] != mCRUs.size()) {
+        LOGP(warning, "Aggregate lane {} flushing incomplete CMV batch relTF {}: received {} CRUs out of {}", mLaneId, relTF, mProcessedCRU[relTF], mCRUs.size());
       }
 
       if (!mHasIntervalFirstTF) {
@@ -631,17 +614,11 @@ class TPCAggregateCMVDevice : public o2::framework::Task
     mTimestampStart = 0;
     mIntervalFirstTF = 0;
     mHasIntervalFirstTF = false;
-    mProcessedTFs = 0;
+    mProcessedCRUs = 0;
     std::fill(mProcessedCRU.begin(), mProcessedCRU.end(), 0);
     std::fill(mOrbitInfo.begin(), mOrbitInfo.end(), 0);
     std::fill(mOrbitStep.begin(), mOrbitStep.end(), 0);
     std::fill(mOrbitInfoSeen.begin(), mOrbitInfoSeen.end(), false);
-    std::fill(mTFCompleted.begin(), mTFCompleted.end(), false);
-    for (auto& processedMap : mProcessedCRUs) {
-      for (auto& [cru, seen] : processedMap) {
-        seen = false;
-      }
-    }
     for (auto& rawPerTF : mRawCMVs) {
       rawPerTF.clear();
     }
