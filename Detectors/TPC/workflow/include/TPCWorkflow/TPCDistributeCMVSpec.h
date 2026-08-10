@@ -129,6 +129,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
 
     const auto tf = processing_helpers::getCurrentTF(pc);
     if (tf == std::numeric_limits<uint32_t>::max()) {
+      LOGP(info, "Entering forwardEOSData() after receiving timeframe {}", tf);
       forwardEOSData(pc);
       return;
     }
@@ -222,7 +223,11 @@ class TPCDistributeCMVSpec : public o2::framework::Task
     }
   }
 
-  void endOfStream(o2::framework::EndOfStreamContext& ec) final { ec.services().get<o2::framework::ControlService>().readyToQuit(o2::framework::QuitRequest::Me); }
+  void endOfStream(o2::framework::EndOfStreamContext& ec) final
+  {
+    LOGP(info, "Entering endOfStream()");
+    ec.services().get<o2::framework::ControlService>().readyToQuit(o2::framework::QuitRequest::Me);
+  }
 
   /// Return data description for aggregated CMVs for a given lane
   static header::DataDescription getDataDescriptionCMV(const unsigned int lane)
@@ -358,6 +363,7 @@ class TPCDistributeCMVSpec : public o2::framework::Task
         continue;
       }
 
+      LOGP(info, "forwardEOSData(): CMV data with tfCounter from header: {}", tpcCRUHeader->tfCounter);
       forwardData(pc, o2::framework::Output{o2::header::gDataOriginTPC, mDataDescrOut[currentOutLane], header::DataHeader::SubSpecificationType{cru}}, cru, it, [&] { sendEmptyCMVOutput(pc, currentOutLane, cru); });
     }
   }
