@@ -22,6 +22,7 @@ target_link_libraries(allsim
                                 FairMQ::FairMQ
                                 O2::CPVSimulation
                                 O2::DetectorsPassive
+                                O2::ExternalDetectors
                                 O2::EMCALSimulation
                                 O2::FDDSimulation
                                 O2::Field
@@ -46,7 +47,7 @@ target_link_libraries(allsim
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::IOTOFSimulation>
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::RICHSimulation>
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::ECalSimulation>
-								$<$<BOOL:${ENABLE_UPGRADES}>:O2::FD3Simulation>
+                                $<$<BOOL:${ENABLE_UPGRADES}>:O2::FD3Simulation>
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::MI3Simulation>
                                 O2::Generators)
 

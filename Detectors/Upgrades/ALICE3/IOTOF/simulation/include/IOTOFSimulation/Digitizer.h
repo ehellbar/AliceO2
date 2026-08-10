@@ -74,17 +74,6 @@ class Digitizer : public TObject
   // Provide the common iotof::GeometryTGeo to access matrices and segmentation
   void setGeometry(const o2::iotof::GeometryTGeo* gm) { mGeometry = gm; }
 
-  // Setters for digitization parameters
-  void setChargeThreshold(float thr) { mChargeThreshold = thr; }
-  void setTimeResolution(float res) { mTimeResolution = res; }
-  void setEfficiency(float eff) { mEfficiency = eff; }
-  void setEnergyToCharge(float e2c) { mEnergyToCharge = e2c; }
-
-  // Getters
-  float getChargeThreshold() const { return mChargeThreshold; }
-  float getTimeResolution() const { return mTimeResolution; }
-  float getEfficiency() const { return mEfficiency; }
-
  private:
   /// Process a single hit
   void processHit(const o2::itsmft::Hit& hit, int evID, int srcID);
@@ -92,6 +81,8 @@ class Digitizer : public TObject
   /// Register digits in a given chip
   void registerDigits(Chip& chip, uint32_t roFrame, double time, int nROF,
                       uint16_t row, uint16_t col, int nElectrons, o2::MCCompLabel& label);
+
+  void stepping(const o2::itsmft::Hit& hit, float**& respMatrix, int& rowStart, int& colStart, int& rowSpan, int& colSpan);
 
   /// Apply time smearing to simulate detector resolution
   double smearTime(double time) const;
@@ -130,12 +121,6 @@ class Digitizer : public TObject
   o2::InteractionTimeRecord mEventTime; ///< global event time and interaction record
   o2::InteractionRecord mROFRecordIR;   ///< interaction record assigned to the output ROF
   bool mContinuous = true;              ///< continuous readout mode
-
-  // Digitization parameters
-  float mChargeThreshold = 100.f;  ///< charge threshold for digit creation (electrons)
-  float mTimeResolution = 0.020f;  ///< time resolution sigma in ns (20 ps default)
-  float mEfficiency = 0.98f;       ///< detection efficiency
-  float mEnergyToCharge = 3.6e-9f; ///< energy loss to electrons conversion (3.6 eV per e-h pair in Si)
 
   static o2::iotof::Segmentation* sSegmentation; ///< IOTOF segmentation instance (singleton)
 
