@@ -90,7 +90,7 @@ class DigitizerSpec final : public o2::base::BaseDPLDigitizer, public o2::framew
   std::vector<Hit> mHits;                     ///< Vector with input hits
   std::vector<TChain*> mSimChains;
   o2::ctp::CTPConfiguration* mCTPConfig; ///< CTP configuration
-  o2::detectors::DetID::mask_t mDetMask;      ///< to keep track whether FT0 and FV0 are included
+  o2::detectors::DetID::mask_t mDetMask; ///< to keep track whether FT0 and FV0 are included
   o2::steer::MCKinematicsReader* mcReader; ///< reader to access MC collision information
 
   DigitizerTRU mDigitizerTRU;             ///< Digitizer object TRU
