@@ -99,7 +99,7 @@ class DigitizerSpec final : public o2::base::BaseDPLDigitizer, public o2::framew
 
 /// \brief Create new digitizer spec
 /// \return Digitizer spec
-o2::framework::DataProcessorSpec getEMCALDigitizerSpec(int channel, bool requireCTPInput, bool mctruth = true, bool useccdb = true);
+o2::framework::DataProcessorSpec getEMCALDigitizerSpec(int channel, bool requireCTPInput, std::vector<o2::detectors::DetID>& detList, bool mctruth = true, bool useccdb = true);
 
 } // namespace emcal
 } // end namespace o2
